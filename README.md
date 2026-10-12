@@ -3,14 +3,14 @@
 Swift re-implementation of the Markdown editor pipeline found in Bear.app 3.0.1
 (`PolarMark` → `MDTextKit` → `MDTextKitUI`). `MDTextKit` and `MDTextKitUI` are ported
 function by function from the Ghidra decompilation of the shipped frameworks
-(`../tools/decomp/`); the previous approximate implementation is kept in `old-approx/`.
+(`reference/decomp/`, not tracked by git).
 Pure Swift, SwiftPM, macOS 13+, TextKit 1.
 
 Port status: MDTextStorage, hider, differ, index map, all attachments, StyleKit paths, every
 styler, renderer, layout manager, text operations, behaviour controller and editor controller are
 1:1. `PolarMark` (Ice parser + `PMKAST` operations) is still the clone's own implementation;
 `PMKAST+BearAPI.swift` exposes Bear's selectors and returns no results for unported operations.
-App bundle: `../tools/scripts/make_app.sh` → `dist/BearClone.app`; `--size 708x748` opens the window at Bear's
+App bundle: `scripts/make_app.sh` → `dist/BearClone.app`; `--size 708x748` opens the window at Bear's
 editor-area size for screenshot comparisons; `--font-size 16` mirrors Bear's Settings › Typography › Font Size
 (the user setting overrides the theme's `editor.text size`). Bear's text area is 708pt wide next to an 11pt
 scroller, so use `--size 723x748` for a 708pt text area with the legacy scroller. `--dump-layout` prints every line

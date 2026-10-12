@@ -2,3 +2,5 @@
 dist/
 *.xcodeproj
 .DS_Store
+reference/
+.swiftpm/xcode/**/xcuserdata/
