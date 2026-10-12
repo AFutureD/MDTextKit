@@ -1,7 +1,7 @@
 import AppKit
 import PolarMark
 
-@MainActor public final class MDTextOperationResult: NSObject {
+public final class MDTextOperationResult: NSObject {
     public var replacementAttributedString: NSAttributedString?
     public var replacementRange = NSNotFoundRange
     public var proposedSelectionRange = NSNotFoundRange

@@ -17,6 +17,11 @@ public extension MDTextAttachmentConfigurator {
 
 /// The glue between the text view, the text storage/AST, the renderer,
 /// the hider and the differ. Ported method by method from the decompilation.
+/// A text view that owns its undo history instead of letting AppKit record typing.
+@MainActor public protocol MDUndoHost: AnyObject {
+    var editorUndoManager: UndoManager { get }
+}
+
 @MainActor public final class MDEditorController: NSObject {
     public var attributedStringRenderer = MDAttributedStringRenderer()
     public var editorBehaviourController = MDEditorBehaviourController()
@@ -35,13 +40,16 @@ public extension MDTextAttachmentConfigurator {
 
     private func storage(_ tv: NSTextView) -> MDTextStorage { tv.textStorage as! MDTextStorage }
 
+    /// The editor's own manager; AppKit's is nil on purpose, so it registers no typing records.
+    private func undoManager(for tv: NSTextView) -> UndoManager? { (tv as? MDUndoHost)?.editorUndoManager ?? tv.undoManager }
+
     // MARK: Loading / styling
 
     public func loadString(_ string: String, into textView: NSTextView) {
         storage(textView).setAttributedString(NSAttributedString(string: string))
         performStyling(in: textView, withAutomaticTextChanges: false)
         rearrangeAttachmentsViews(in: textView, range: NSRange(location: 0, length: storage(textView).length))
-        textView.undoManager?.removeAllActions()
+        undoManager(for: textView)?.removeAllActions()
     }
 
     /// Theme change: restyle everything in place without touching the undo stack (`styleTextView:with:` is wrapped
@@ -49,7 +57,7 @@ public extension MDTextAttachmentConfigurator {
     public func restyleAll(in textView: NSTextView) {
         let ts = storage(textView)
         let selection = textView.selectedRange()
-        textView.undoManager?.disableUndoRegistration()
+        undoManager(for: textView)?.disableUndoRegistration()
         let markdown = ts.stringByExpandingTextAttachments
         let stringSelection = ts.stringRange(fromAttributedStringRange: selection)
         ts.setAttributedString(NSAttributedString(string: markdown))
@@ -57,7 +65,7 @@ public extension MDTextAttachmentConfigurator {
         rearrangeAttachmentsViews(in: textView, range: NSRange(location: 0, length: ts.length))
         let restored = ts.attributedStringRange(fromStringRange: stringSelection)
         if restored.location != NSNotFound, NSMaxRange(restored) <= ts.length { textView.setSelectedRange(restored) }
-        textView.undoManager?.enableUndoRegistration()
+        undoManager(for: textView)?.enableUndoRegistration()
     }
 
     public func styledAttributedString(fromString string: String) -> NSMutableAttributedString {
@@ -95,8 +103,8 @@ public extension MDTextAttachmentConfigurator {
                 self.validateTextAttachments(with: self.textAttachmentConfigurator, in: replacement, selectionRange: &proposed, selectionLocationOffset: innerDiff.location + range.location)
                 target = outerDiff
             }
-            let undoing = textView.undoManager?.isUndoing ?? false
-            let redoing = textView.undoManager?.isRedoing ?? false
+            let undoing = undoManager(for: textView)?.isUndoing ?? false
+            let redoing = undoManager(for: textView)?.isRedoing ?? false
             if innerDiff.location == NSNotFound {
                 if !undoing, !redoing {
                     ts.beginEditing()
@@ -140,10 +148,12 @@ public extension MDTextAttachmentConfigurator {
     public func replaceCharacters(in range: NSRange, with s: NSAttributedString, selectRange selection: NSRange, in textView: NSTextView) {
         let ts = storage(textView)
         guard NSMaxRange(range) <= ts.length else { return }
+        // A typing group still open would record ranges this replacement moves.
+        textView.breakUndoCoalescing()
         let oldSelection = textView.selectedRange()
         let old = ts.attributedSubstring(from: range)
         let newLength = s.length
-        if let um = textView.undoManager {
+        if let um = undoManager(for: textView) {
             um.registerUndo(withTarget: textView) { [weak self] tv in
                 self?.replaceCharacters(in: NSRange(location: range.location, length: newLength), with: old, selectRange: oldSelection, in: tv)
             }
@@ -151,7 +161,7 @@ public extension MDTextAttachmentConfigurator {
         ts.replaceCharacters(in: range, with: s)
         if selection.location != NSNotFound { textView.setSelectedRange(NSRange(location: min(selection.location, ts.length), length: min(selection.length, max(0, ts.length - selection.location)))) }
         textView.setNeedsDisplay(textView.bounds, avoidAdditionalLayout: false)
-        if let um = textView.undoManager, um.isUndoing || um.isRedoing { textView.didChangeText() }
+        if let um = undoManager(for: textView), um.isUndoing || um.isRedoing { textView.didChangeText() }
     }
 
     /// Redraw the visible part, plus neighbouring paragraphs and the
@@ -236,7 +246,7 @@ public extension MDTextAttachmentConfigurator {
     /// callout normalisation over the reparsed range (pipes escaping when styling inlines only).
     public func performAutomaticTextChanges(in textView: NSTextView) {
         let ts = storage(textView)
-        guard !(textView.undoManager?.isUndoing ?? false), !(textView.undoManager?.isRedoing ?? false) else { return }
+        guard !(undoManager(for: textView)?.isUndoing ?? false), !(undoManager(for: textView)?.isRedoing ?? false) else { return }
         guard ts.currentReparsedRange.location != NSNotFound else { return }
         let ast = ts.ast
         var selection = ts.stringRange(fromAttributedStringRange: textView.selectedRange())
@@ -316,10 +326,10 @@ public extension MDTextAttachmentConfigurator {
     }
 
     public func replaceCharacters(in range: NSRange, with s: NSAttributedString, in textView: NSTextView) {
-        textView.undoManager?.beginUndoGrouping()
+        undoManager(for: textView)?.beginUndoGrouping()
         replaceCharacters(in: range, with: s, selectRange: NSNotFoundRange, in: textView)
         performStyling(in: textView)
-        textView.undoManager?.endUndoGrouping()
+        undoManager(for: textView)?.endUndoGrouping()
     }
 
     // MARK: Edit interception
@@ -328,7 +338,7 @@ public extension MDTextAttachmentConfigurator {
     /// then the AST corrections. Returns false when the edit was handled here.
     public func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString string: String?) -> Bool {
         guard let string = string else { return true }
-        guard !(textView.undoManager?.isUndoing ?? false), !(textView.undoManager?.isRedoing ?? false) else { return true }
+        guard !(undoManager(for: textView)?.isUndoing ?? false), !(undoManager(for: textView)?.isRedoing ?? false) else { return true }
         if textView.hasMarkedText(), string != "" { return true }
         let ts = storage(textView)
         if let results = editorBehaviourController.results(forEditIn: range, replacementString: string, attributedString: ts, selectionRange: textView.selectedRange()) {
@@ -604,14 +614,14 @@ public extension MDTextAttachmentConfigurator {
             textView.setSelectedRange(result.proposedSelectionRange)
             return
         }
-        textView.undoManager?.beginUndoGrouping()
+        undoManager(for: textView)?.beginUndoGrouping()
         replaceCharacters(in: result.replacementRange, with: replacement, selectRange: result.proposedSelectionRange, in: textView)
         if result.needStyling { postTextDidChange(textView) }
-        textView.undoManager?.endUndoGrouping()
+        undoManager(for: textView)?.endUndoGrouping()
     }
 
     public func applyTextOperationResults(_ results: [MDTextOperationResult], in textView: NSTextView) {
-        textView.undoManager?.beginUndoGrouping()
+        undoManager(for: textView)?.beginUndoGrouping()
         var styled = NSNotFoundRange
         for r in results {
             guard let replacement = r.replacementAttributedString else {
@@ -630,7 +640,7 @@ public extension MDTextAttachmentConfigurator {
         }
         textView.scrollRangeToVisible(textView.selectedRange())
         if styled.location != NSNotFound { postTextDidChange(textView) }
-        textView.undoManager?.endUndoGrouping()
+        undoManager(for: textView)?.endUndoGrouping()
     }
 
     /// Posts the text-did-change notification; the text view's `didChangeText` restyles.

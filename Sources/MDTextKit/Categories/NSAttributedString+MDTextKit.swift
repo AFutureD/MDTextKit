@@ -502,6 +502,14 @@ public extension NSFont {
     /// Rebuilds the font from family + symbolic traits
     /// so bold/italic come from the real family members. `nil` traits keeps the exact face.
     func fontVariant(ofSize size: CGFloat, byAddingTraits traits: NSFontDescriptor.SymbolicTraits?) -> NSFont? {
+        guard let variant = faceVariant(ofSize: size, byAddingTraits: traits) else { return nil }
+        // The cascade travels with the face, and its entries take the traits the face gains.
+        guard let cascade = fontDescriptor.fontAttributes[.cascadeList] as? [NSFontDescriptor] else { return variant }
+        let traited = cascade.map { traits.map($0.withSymbolicTraits) ?? $0 }
+        return NSFont(descriptor: variant.fontDescriptor.addingAttributes([.cascadeList: traited]), size: size) ?? variant
+    }
+
+    private func faceVariant(ofSize size: CGFloat, byAddingTraits traits: NSFontDescriptor.SymbolicTraits?) -> NSFont? {
         let descriptor = fontDescriptor
         var attrs: [NSFontDescriptor.AttributeName: Any] = [:]
         attrs[.family] = familyName

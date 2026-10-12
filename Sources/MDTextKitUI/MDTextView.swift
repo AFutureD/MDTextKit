@@ -5,7 +5,7 @@ import SFThemeKit
 
 /// `MDTextView : NSTextView` (MDTextKitUI, Swift). Routes every edit, key command and selection
 /// change through `MDEditorController`.
-@MainActor public class MDTextView: NSTextView, NSTextViewDelegate {
+@MainActor open class MDTextView: NSTextView, NSTextViewDelegate, MDUndoHost {
     public let editorController: MDEditorController
     private var trackingArea: NSTrackingArea?
     private var lastSelection = NSRange(location: 0, length: 0)
@@ -28,7 +28,8 @@ import SFThemeKit
     private func setup() {
         isRichText = false
         importsGraphics = false
-        allowsUndo = true
+        // The view registers its own undo: AppKit's typing records go stale once styling rewrites text.
+        allowsUndo = false
         isAutomaticQuoteSubstitutionEnabled = false
         isAutomaticDashSubstitutionEnabled = false
         isAutomaticTextReplacementEnabled = false
@@ -111,17 +112,18 @@ import SFThemeKit
 
     // MARK: Editing hooks
 
-    /// Styling runs from `didChangeText`.
-    /// The editor's dedicated undo manager (`NoteEditorViewController.editorUndoManager`, returned from
-    /// `undoManagerForTextView:`); the window's manager is never used.
+    /// The editor's dedicated undo manager; AppKit's own is nil, so it records no typing.
     public let editorUndoManager = UndoManager()
-    public func undoManager(for view: NSTextView) -> UndoManager? { editorUndoManager }
+
+    @objc open func undo(_ sender: Any?) { editorUndoManager.undo() }
+    @objc open func redo(_ sender: Any?) { editorUndoManager.redo() }
 
     /// Super, then after an undo/redo the delegate's `textViewDidUndoOrRedo` runs
     /// asynchronously (the host makes the text view first responder again).
-    public override func didChangeText() {
+    open override func didChangeText() {
         super.didChangeText()
-        if let um = undoManager, um.isUndoing || um.isRedoing {
+        if editorUndoManager.isUndoing || editorUndoManager.isRedoing {
+            typingRun = nil
             Task { @MainActor [weak self] in
                 guard let self, let window else { return }
                 window.makeFirstResponder(self)
@@ -153,9 +155,59 @@ import SFThemeKit
         }
     }
 
-    public override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
-        guard super.shouldChangeText(in: affectedCharRange, replacementString: replacementString) else { return false }
-        return editorController.textView(self, shouldChangeTextIn: affectedCharRange, replacementString: replacementString)
+    open override func shouldChangeText(inRanges ranges: [NSValue], replacementStrings: [String]?) -> Bool {
+        guard super.shouldChangeText(inRanges: ranges, replacementStrings: replacementStrings) else { return false }
+        guard ranges.count == 1, let range = ranges.first?.rangeValue else {
+            typingRun = nil
+            return true
+        }
+        let replacement = replacementStrings?.first
+        guard editorController.textView(self, shouldChangeTextIn: range, replacementString: replacement) else { return false }
+        if let replacement, !hasMarkedText() { recordEdit(in: range, replacement: replacement) } else { typingRun = nil }
+        return true
+    }
+
+    // MARK: Undo
+
+    /// One undo step of consecutive typing; the closure reads the run, so later keystrokes extend it.
+    private final class TypingRun {
+        var range: NSRange
+        let old: NSAttributedString
+        let selection: NSRange
+
+        init(range: NSRange, old: NSAttributedString, selection: NSRange) {
+            self.range = range
+            self.old = old
+            self.selection = selection
+        }
+    }
+
+    private var typingRun: TypingRun?
+
+    /// Registers the inverse of a native edit, coalescing typing at the run's end and deletions of it.
+    private func recordEdit(in range: NSRange, replacement: String) {
+        let newLength = (replacement as NSString).length
+        if let run = typingRun {
+            if range.length == 0, range.location == NSMaxRange(run.range), newLength > 0, !replacement.contains("\n") {
+                run.range.length += newLength
+                return
+            }
+            if newLength == 0, range.length > 0, NSMaxRange(range) == NSMaxRange(run.range), range.length <= run.range.length {
+                run.range.length -= range.length
+                return
+            }
+        }
+        let run = TypingRun(range: NSRange(location: range.location, length: newLength),
+                            old: mdTextStorage.attributedSubstring(from: range), selection: selectedRange())
+        typingRun = run
+        editorUndoManager.registerUndo(withTarget: self) { textView in
+            textView.editorController.replaceCharacters(in: run.range, with: run.old, selectRange: run.selection, in: textView)
+        }
+    }
+
+    open override func breakUndoCoalescing() {
+        super.breakUndoCoalescing()
+        typingRun = nil
     }
 
     public func textView(_ textView: NSTextView, willChangeSelectionFromCharacterRange old: NSRange, toCharacterRange new: NSRange) -> NSRange {
@@ -179,13 +231,13 @@ import SFThemeKit
         editorController.notifyTextSelectionChanges(in: self)
     }
 
-    public override func becomeFirstResponder() -> Bool {
+    open override func becomeFirstResponder() -> Bool {
         let ok = super.becomeFirstResponder()
         if ok { editorController.autodisableLinks(in: self) }
         return ok
     }
 
-    public override func resignFirstResponder() -> Bool {
+    open override func resignFirstResponder() -> Bool {
         let ok = super.resignFirstResponder()
         if ok { editorController.autodisableLinks(in: self) }
         return ok
@@ -193,14 +245,14 @@ import SFThemeKit
 
     // MARK: Key commands (forwarded to the controller before NSTextView handles them)
 
-    public override func insertNewline(_ sender: Any?) {
+    open override func insertNewline(_ sender: Any?) {
         // Shift-Return bypasses the AST newline handling (plain line break).
         if NSApp.currentEvent?.modifierFlags.contains(.shift) == true { super.insertNewline(sender); return }
         if editorController.textViewShouldInsertNewLine(self) { super.insertNewline(sender) }
     }
 
     /// The arrow keys enter a table from either side.
-    public override func moveLeft(_ sender: Any?) {
+    open override func moveLeft(_ sender: Any?) {
         let sel = selectedRange()
         if sel.length == 0, sel.location >= 1, let vc = tableController(at: sel.location - 1) {
             vc.enter(fromRight: true); return
@@ -208,7 +260,7 @@ import SFThemeKit
         super.moveLeft(sender)
     }
 
-    public override func moveRight(_ sender: Any?) {
+    open override func moveRight(_ sender: Any?) {
         let sel = selectedRange()
         if sel.length == 0, sel.location < mdTextStorage.length, let vc = tableController(at: sel.location) {
             vc.enter(fromRight: false); return
@@ -222,7 +274,7 @@ import SFThemeKit
 
     /// Inside a fenced code / math block the first ⌘A selects the
     /// block content, the second selects everything.
-    public override func selectAll(_ sender: Any?) {
+    open override func selectAll(_ sender: Any?) {
         let ts = mdTextStorage
         let sel = ts.stringRange(fromAttributedStringRange: selectedRange())
         if let r = ts.ast.selectAllText(in: sel, selectionRange: sel).last {
@@ -232,31 +284,31 @@ import SFThemeKit
         }
     }
 
-    public override func insertTab(_ sender: Any?) {
+    open override func insertTab(_ sender: Any?) {
         if editorController.textViewShouldInsertTab(self) { super.insertTab(sender) }
     }
 
-    public override func insertBacktab(_ sender: Any?) {
+    open override func insertBacktab(_ sender: Any?) {
         if editorController.textViewShouldRemoveTab(self) { super.insertBacktab(sender) }
     }
 
-    public override func deleteBackward(_ sender: Any?) {
+    open override func deleteBackward(_ sender: Any?) {
         if editorController.textViewShouldDeleteBackward(self) { super.deleteBackward(sender) }
     }
 
-    public override func deleteForward(_ sender: Any?) {
+    open override func deleteForward(_ sender: Any?) {
         if editorController.textViewShouldDeleteForward(self) { super.deleteForward(sender) }
     }
 
-    public override func moveToLeftEndOfLine(_ sender: Any?) {
+    open override func moveToLeftEndOfLine(_ sender: Any?) {
         if !editorController.handleMoveToLeftEndOfLine(in: self, extendSelection: false) { super.moveToLeftEndOfLine(sender) }
     }
 
-    public override func moveToLeftEndOfLineAndModifySelection(_ sender: Any?) {
+    open override func moveToLeftEndOfLineAndModifySelection(_ sender: Any?) {
         if !editorController.handleMoveToLeftEndOfLine(in: self, extendSelection: true) { super.moveToLeftEndOfLineAndModifySelection(sender) }
     }
 
-    public override func deleteToBeginningOfLine(_ sender: Any?) {
+    open override func deleteToBeginningOfLine(_ sender: Any?) {
         if !editorController.handleDeleteToBeginningOfLine(in: self) { super.deleteToBeginningOfLine(sender) }
     }
 
@@ -343,7 +395,7 @@ import SFThemeKit
         editorController.toggleHeading(in: self, headingLevel: sender.tag)
     }
 
-    public override func mouseMoved(with event: NSEvent) {
+    open override func mouseMoved(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
         if let idx = attachmentIndex(at: p), mdTextStorage.textAttachment(at: idx) is MDTaskTextAttachment {
             NSCursor.pointingHand.set()
@@ -352,7 +404,7 @@ import SFThemeKit
         super.mouseMoved(with: event)
     }
 
-    public override func updateTrackingAreas() {
+    open override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let t = trackingArea { removeTrackingArea(t) }
         let t = NSTrackingArea(rect: bounds, options: [.mouseMoved, .activeInKeyWindow, .inVisibleRect], owner: self, userInfo: nil)
@@ -364,7 +416,7 @@ import SFThemeKit
 
     public static let attributedStringPboardType = NSPasteboard.PasteboardType("MDTextViewAttributedStringPboardType")
 
-    public override var writablePasteboardTypes: [NSPasteboard.PasteboardType] {
+    open override var writablePasteboardTypes: [NSPasteboard.PasteboardType] {
         var types: [NSPasteboard.PasteboardType] = [.rtfd, MDTextView.attributedStringPboardType, .string]
         let sel = selectedRange()
         let ns = mdTextStorage.string as NSString
@@ -375,11 +427,11 @@ import SFThemeKit
         return types
     }
 
-    public override var readablePasteboardTypes: [NSPasteboard.PasteboardType] {
+    open override var readablePasteboardTypes: [NSPasteboard.PasteboardType] {
         [MDTextView.attributedStringPboardType, .fileURL, .pdf, .tiff, NSPasteboard.PasteboardType("com.apple.drawing")] + super.readablePasteboardTypes
     }
 
-    public override func writeSelection(to pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+    open override func writeSelection(to pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
         let sel = selectedRange()
         guard NSMaxRange(sel) <= mdTextStorage.length else { return false }
         switch type {
@@ -406,7 +458,7 @@ import SFThemeKit
         }
     }
 
-    public override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+    open override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
         // The delegate ignores `type` and reads the whole pasteboard itself; false → AppKit's plain-string paste.
         if readPasteboard(pboard) { return true }
         return super.readSelection(from: pboard, type: type)
@@ -490,11 +542,11 @@ import SFThemeKit
     private var selectionRectDuringDrag = CGRect.zero
     private var lineInsertionPointRect = CGRect.zero
 
-    public override var rangeForUserTextChange: NSRange {
+    open override var rangeForUserTextChange: NSRange {
         singleLineDragging ? NSRange(location: lineInsertionIndex(), length: 0) : super.rangeForUserTextChange
     }
 
-    public override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+    open override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         internalDraggingRange = (sender.draggingSource as? NSObject) === self ? selectedRange() : NSRange(location: NSNotFound, length: 0)
         if shouldSingleLineDrag(for: sender.draggingPasteboard) {
             singleLineDragging = true
@@ -504,7 +556,7 @@ import SFThemeKit
         return super.draggingEntered(sender)
     }
 
-    public override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+    open override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
         guard singleLineDragging else { return super.draggingUpdated(sender) }
         let old = lineInsertionPointRect
         lineInsertionPointRect = lineInsertionPointRect(for: sender.draggingLocation)
@@ -519,18 +571,18 @@ import SFThemeKit
         return .generic
     }
 
-    public override func draggingEnded(_ sender: NSDraggingInfo) {
+    open override func draggingEnded(_ sender: NSDraggingInfo) {
         internalDraggingRange = NSRange(location: NSNotFound, length: 0)
         singleLineDragging = false
         setNeedsDisplay(lineInsertionPointRect, avoidAdditionalLayout: true)
         super.draggingEnded(sender)
     }
 
-    public override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+    open override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
         super.prepareForDragOperation(sender) || !lineInsertionPointRect.equalTo(.zero)
     }
 
-    public override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+    open override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         if super.performDragOperation(sender) { return true }
         if lineInsertionPointRect.equalTo(.zero) { return false }
         _ = readSelection(from: sender.draggingPasteboard, type: MDTextView.attributedStringPboardType)
@@ -576,7 +628,7 @@ import SFThemeKit
         return rect
     }
 
-    public override func draw(_ dirtyRect: NSRect) {
+    open override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         if singleLineDragging { drawLineInsertionPoint(lineInsertionPointRect) }
     }
