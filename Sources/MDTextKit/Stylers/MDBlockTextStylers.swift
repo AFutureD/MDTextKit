@@ -266,7 +266,7 @@ import PolarMark
         a.attachmentSize = CGSize(width: baseTabSize, height: size)
         a.drawingRect = CGRect(x: x, y: 0, width: size, height: size)
         if rtl { a.drawingRect = CGRect(x: a.attachmentSize.width - x - size, y: 0, width: size, height: size) }
-        a.attachmentBaselineOffset = text.baselineOffsetForAttachment(at: 0, attachmentHeight: a.attachmentSize.height)
+        a.attachmentBaselineOffset = text.baselineOffsetCentringAttachmentInLineBox(at: 0, attachmentHeight: size)
         a.fillColor = taskFillColor
         a.borderColor = taskBorderColor
         a.checkColor = taskCheckColor

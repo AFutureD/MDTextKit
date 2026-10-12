@@ -75,6 +75,18 @@ public extension NSAttributedString {
         return (font.capHeight - height) / 2
     }
 
+    /// Centres the attachment in the line box: the minimum line height, or the font's own height.
+    func baselineOffsetCentringAttachmentInLineBox(at index: Int, attachmentHeight height: CGFloat) -> CGFloat {
+        guard length > 0 else { return 0 }
+        let i = min(index, length - 1)
+        let attributes = attributes(at: i, effectiveRange: nil)
+        let font = (attributes[.font] as? NSFont) ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        let descent = ceil(-font.descender)
+        let minimum = (attributes[.paragraphStyle] as? NSParagraphStyle)?.minimumLineHeight ?? 0
+        let lineBox = max(minimum, ceil(font.ascender) + descent)
+        return lineBox / 2 - descent - height / 2
+    }
+
     func range(ofTextAttachment attachment: NSTextAttachment) -> NSRange {
         range(ofTextAttachment: attachment, foldRange: nil)
     }
