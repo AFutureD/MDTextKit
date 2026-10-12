@@ -37,9 +37,9 @@ public final class MDAttributedStringChangeTracker: NSObject {
         attachmentRemovedOrder.removeAllObjects()
     }
 
-    public func trackReplaceCharacters(in range: NSRange, in attributedString: NSAttributedString, with string: String) {
+    public func trackReplaceCharacters(in range: NSRange, in attributedString: NSAttributedString, with string: String, plainRange: NSRange? = nil) {
         let change = MDAttributedStringChange()
-        change.oldPlainRange = attributedString.stringRange(fromAttributedStringRange: range)
+        change.oldPlainRange = plainRange ?? attributedString.stringRange(fromAttributedStringRange: range)
         change.oldAttributedRange = range
         change.oldAttributedString = attributedString.attributedSubstring(from: range)
         let newLength = (string as NSString).length

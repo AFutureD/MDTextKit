@@ -2,6 +2,7 @@
 import PackageDescription
 
 //   PolarMark   -> parser + AST + structural operations
+//   MDTextStorageCore -> the text storage's Objective-C primitives
 //   MDTextKit   -> NSTextStorage / stylers / hider / layout manager
 //   MDTextKitUI -> NSTextView subclass + editor view controller
 //   SFThemeKit  -> JSON theme loading with $path references
@@ -21,7 +22,8 @@ let package = Package(
         .target(name: "PolarMark"),
         .target(name: "SFThemeKit"),
         .target(name: "TextBundle"),
-        .target(name: "MDTextKit", dependencies: ["PolarMark", "SFThemeKit"]),
+        .target(name: "MDTextStorageCore"),
+        .target(name: "MDTextKit", dependencies: ["PolarMark", "SFThemeKit", "MDTextStorageCore"]),
         .target(name: "MDTextKitUI", dependencies: ["MDTextKit", "PolarMark", "SFThemeKit", "TextBundle"]),
         .executableTarget(name: "MDTextKitDemo", dependencies: ["MDTextKitUI", "TextBundle"], resources: [.copy("Themes")]),
         .testTarget(name: "PolarMarkTests", dependencies: ["PolarMark"]),

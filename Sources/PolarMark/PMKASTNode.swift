@@ -50,6 +50,15 @@ public final class PMKASTNode {
         children.append(child)
     }
 
+    /// Moves the subtree by `delta` code units, for blocks an edit above them left untouched.
+    func shift(by delta: Int) {
+        range.location += delta
+        for i in markerRanges.indices { markerRanges[i].location += delta }
+        contentRange.location += delta
+        if indentRange != nil { indentRange!.location += delta }
+        for c in children { c.shift(by: delta) }
+    }
+
     public var firstChild: PMKASTNode? { children.first }
     public var lastChild: PMKASTNode? { children.last }
 

@@ -32,8 +32,12 @@ public let NSNotFoundRange = NSRange(location: NSNotFound, length: 0)
 // MARK: - NSAttributedString(Attachments)
 
 public extension NSAttributedString {
+    /// A text storage walks its backing string, so no run pays Swift's attribute bridging.
+    var walkable: NSAttributedString { (self as? MDTextStorage)?.backing ?? self }
+
     var stringByExpandingTextAttachments: String {
-        stringByExpandingTextAttachments(in: NSRange(location: 0, length: length))
+        if let storage = self as? MDTextStorage { return storage.markdown }
+        return stringByExpandingTextAttachments(in: NSRange(location: 0, length: length))
     }
 
     func stringByExpandingTextAttachments(in range: NSRange) -> String {
@@ -44,8 +48,9 @@ public extension NSAttributedString {
     /// SFTextAttachment with its represented markdown and shifts `selection` accordingly.
     func stringByExpandingTextAttachments(in range: NSRange, selectionToOffset selection: UnsafeMutablePointer<NSRange>?) -> String {
         let result = NSMutableString(capacity: range.length)
-        let ns = string as NSString
-        enumerateAttribute(.attachment, in: range, options: []) { value, r, _ in
+        let source = walkable
+        let ns = source.string as NSString
+        source.enumerateAttribute(.attachment, in: range, options: []) { value, r, _ in
             if let att = value as? SFTextAttachment {
                 let text = att.representedText
                 result.append(text)
@@ -259,10 +264,11 @@ public extension NSAttributedString {
     /// Converts a range in this (attachment-bearing)
     /// string to the markdown string's coordinates.
     func stringRange(fromAttributedStringRange range: NSRange) -> NSRange {
+        if let storage = self as? MDTextStorage { return storage.markdownRange(fromAttributedRange: range) }
         var before = 0
         var inside = 0
         let limit = min(NSMaxRange(range), length)
-        enumerateAttribute(.attachment, in: NSRange(location: 0, length: limit), options: []) { value, r, _ in
+        walkable.enumerateAttribute(.attachment, in: NSRange(location: 0, length: limit), options: []) { value, r, _ in
             guard let att = value as? SFTextAttachment else { return }
             let delta = (att.representedText as NSString).length - r.length
             if NSMaxRange(r) - 1 < range.location { before += delta } else { inside += delta }
@@ -271,12 +277,13 @@ public extension NSAttributedString {
     }
 
     func attributedStringRange(fromStringRange range: NSRange) -> NSRange {
-        MDStringToAttributedStringIndexMap.attributedStringRange(forStringRange: range, in: self)
+        let start = (self as? MDTextStorage)?.walkStart(forMarkdownOffset: range.location)
+        return MDStringToAttributedStringIndexMap.attributedStringRange(forStringRange: range, in: walkable, from: start)
     }
 
     func offsetSelection(_ selection: NSRange, byReplacingTextAttachmentIn range: NSRange) -> NSRange {
         var sel = selection
-        enumerateAttribute(.attachment, in: range, options: .reverse) { value, r, _ in
+        walkable.enumerateAttribute(.attachment, in: range, options: .reverse) { value, r, _ in
             guard let att = value as? SFTextAttachment else { return }
             sel = NSAttributedString.offsetSelectionRange(sel, forReplacementRange: r, replacementLength: (att.representedText as NSString).length)
         }

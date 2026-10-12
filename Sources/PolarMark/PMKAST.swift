@@ -66,49 +66,70 @@ public final class PMKAST {
         annotatedCache = nil
     }
 
-    /// Replaces `range` with `markdown`, re-parses, and returns the range (in the
-    /// new text) that must be re-styled.
-    /// followed by `-[MDTextStorage validateAndSetReparsedRange:...]`.
+    /// Replaces `range` with `markdown` and re-parses the blocks the edit can reach: from the block
+    /// before the one holding it, forward until a parsed block matches an old block again. Returns the
+    /// range (in the new text) that must be re-styled.
     @discardableResult
     public func replaceRange(_ range: NSRange, withMarkdown markdown: String) -> NSRange {
         let r = clamp(range)
         let insert = Array(markdown.utf16)
-        let oldRoot = rootNode
+        let oldBlocks = rootNode.children
         utf16.replaceSubrange(r.location..<NSMaxRange(r), with: insert)
-        rootNode = BlockParser(text: utf16, rules: rules).parse()
-        annotatedCache = nil
-
+        lock.withLock { annotatedCache = nil }
         let delta = insert.count - r.length
-        let oldBlocks = oldRoot.children
-        let newBlocks = rootNode.children
+        let editEnd = r.location + insert.count
 
-        // Common prefix: blocks entirely before the edit with identical structure.
-        var prefix = 0
-        while prefix < oldBlocks.count, prefix < newBlocks.count {
-            let o = oldBlocks[prefix], n = newBlocks[prefix]
-            guard NSMaxRange(o.range) <= r.location, o.range == n.range,
-                  o.signature(relativeTo: o.range.location) == n.signature(relativeTo: n.range.location) else { break }
-            prefix += 1
+        guard !oldBlocks.isEmpty else {
+            rootNode = BlockParser(text: utf16, rules: rules).parse()
+            currentReparsedRange = NSRange(location: 0, length: utf16.count)
+            return currentReparsedRange
         }
-        // Common suffix: blocks entirely after the edit, shifted by delta.
-        var suffix = 0
-        while suffix < oldBlocks.count - prefix, suffix < newBlocks.count - prefix {
-            let o = oldBlocks[oldBlocks.count - 1 - suffix], n = newBlocks[newBlocks.count - 1 - suffix]
-            guard o.range.location >= NSMaxRange(r), n.range.location == o.range.location + delta, o.range.length == n.range.length,
-                  o.signature(relativeTo: o.range.location) == n.signature(relativeTo: n.range.location) else { break }
-            suffix += 1
-        }
+        // An edit can join its block to the previous one, so the window opens one block early.
+        var startIndex = oldBlocks.firstIndex { NSMaxRange($0.range) > r.location } ?? oldBlocks.count - 1
+        startIndex = max(0, startIndex - 1)
+        let windowStart = oldBlocks[startIndex].range.location
 
-        var start = r.location
-        var end = r.location + insert.count
-        if prefix < newBlocks.count - suffix {
-            start = min(start, newBlocks[prefix].range.location)
-            end = max(end, NSMaxRange(newBlocks[newBlocks.count - 1 - suffix].range))
-        } else {
-            // Edit fell between blocks (e.g. blank lines): style the surrounding paragraph.
-            start = min(start, lineStart(at: start))
-            end = max(end, lineEnd(at: end))
+        // Old blocks after the edit, by where they end once shifted: the parse stops at the first match.
+        var candidates: [Int: Int] = [:]
+        for (i, block) in oldBlocks.enumerated() where block.range.location >= NSMaxRange(r) {
+            candidates[NSMaxRange(block.range) + delta] = i
         }
+        let parser = BlockParser(text: utf16, rules: rules)
+        let root = PMKASTNode(type: .document, range: NSRange(location: 0, length: utf16.count))
+        for block in oldBlocks[..<startIndex] { root.add(block) }
+        var resumeIndex: Int?
+        parser.parseBlocks(from: parser.lineIndex(at: windowStart), into: root) { block in
+            guard NSMaxRange(block.range) >= editEnd, let i = candidates[NSMaxRange(block.range)] else { return false }
+            let old = oldBlocks[i]
+            guard old.range.length == block.range.length,
+                  old.signature(relativeTo: old.range.location) == block.signature(relativeTo: block.range.location)
+            else { return false }
+            resumeIndex = i
+            return true
+        }
+        var end = utf16.count
+        if let i = resumeIndex {
+            end = root.children.last.map { $0.range.location } ?? end
+            for block in oldBlocks[(i + 1)...] {
+                block.shift(by: delta)
+                root.add(block)
+            }
+        }
+        rootNode = root
+
+        // The first window block is often unchanged; styling starts after it then.
+        var start = windowStart
+        if root.children.count > startIndex {
+            let first = root.children[startIndex]
+            let old = oldBlocks[startIndex]
+            if first.range == old.range, NSMaxRange(first.range) <= r.location,
+               first.signature(relativeTo: first.range.location) == old.signature(relativeTo: old.range.location) {
+                start = NSMaxRange(first.range)
+            }
+        }
+        start = min(start, r.location)
+        end = max(end, min(editEnd, utf16.count))
+        if end < utf16.count { end = max(end, lineEnd(at: end)) }
         currentReparsedRange = NSRange(location: start, length: end - start)
         return currentReparsedRange
     }
@@ -204,13 +225,34 @@ public final class PMKAST {
     public func annotatedString() -> NSAttributedString {
         lock.lock(); defer { lock.unlock() }
         if let c = annotatedCache { return c }
-        let s = Annotator.annotate(ast: self)
+        let s = Annotator.annotate(ast: self, blocks: rootNode.children, window: NSRange(location: 0, length: utf16.count))
         annotatedCache = s
         return s
     }
 
+    /// Annotates only the top-level blocks the range touches, so an edit costs its own blocks.
     public func annotatedString(forStringRange range: NSRange) -> NSAttributedString {
-        annotatedString().attributedSubstring(from: clamp(range))
+        let r = clamp(range)
+        if let cached = lock.withLock({ annotatedCache }) { return cached.attributedSubstring(from: r) }
+        let blocks = rootNode.children
+        var firstIndex = blocks.firstIndex { NSMaxRange($0.range) > r.location } ?? blocks.count
+        // A folded section above the range carries its fold attribute down into it.
+        for (i, block) in blocks[..<firstIndex].enumerated() {
+            var reaches = false
+            block.walk { n in
+                if n.type == .foldMarker, NSMaxRange(foldRange(forMarker: n)) > r.location { reaches = true }
+            }
+            if reaches { firstIndex = i; break }
+        }
+        var window = r
+        var covered: [PMKASTNode] = []
+        for block in blocks[firstIndex...] {
+            if block.range.location >= NSMaxRange(r), !covered.isEmpty || block.range.location > NSMaxRange(r) { break }
+            covered.append(block)
+            window = NSUnionRange(window, block.range)
+        }
+        let annotated = Annotator.annotate(ast: self, blocks: covered, window: window)
+        return annotated.attributedSubstring(from: NSRange(location: r.location - window.location, length: r.length))
     }
 
     public func annotatedString(forRange range: NSRange) -> NSAttributedString { annotatedString(forStringRange: range) }
@@ -224,13 +266,14 @@ public final class PMKAST {
 ///   inline *Marker = 1 opening / 2 closing; link markers "[" 1, "]" 2, "(" 1, ")" 2
 ///   PMKEscape covers only the backslash.
 enum Annotator {
-    static func annotate(ast: PMKAST) -> NSAttributedString {
-        let s = NSMutableAttributedString(string: ast.markdown)
-        let total = s.length
-        let ns = s.string as NSString
+    /// Annotates `blocks` into a string that covers `window`; a run outside the window is clipped.
+    static func annotate(ast: PMKAST, blocks: [PMKASTNode], window: NSRange) -> NSAttributedString {
+        let ns = ast.markdown as NSString
+        let total = ns.length
+        let s = NSMutableAttributedString(string: ns.substring(with: window))
         func add(_ key: NSAttributedString.Key, _ value: Any, _ r: NSRange) {
-            let c = NSIntersectionRange(r, NSRange(location: 0, length: total))
-            if c.length > 0 { s.addAttribute(key, value: value, range: c) }
+            let c = NSIntersectionRange(r, window)
+            if c.length > 0 { s.addAttribute(key, value: value, range: NSRange(location: c.location - window.location, length: c.length)) }
         }
         func openClose(_ key: NSAttributedString.Key, _ n: PMKASTNode) {
             for (i, m) in n.markerRanges.enumerated() {
@@ -256,7 +299,7 @@ enum Annotator {
             return out
         }
 
-        ast.rootNode.walk { n in
+        for block in blocks { block.walk { n in
             switch n.type {
             case .document, .paragraph: break
 
@@ -421,7 +464,7 @@ enum Annotator {
                 }
             case .hardLineBreak: add(.pmkHardLinebreak, NSNumber(value: 1), n.range)
             }
-        }
+        } }
         return s
     }
 }

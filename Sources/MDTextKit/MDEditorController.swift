@@ -310,6 +310,7 @@ public extension MDTextAttachmentConfigurator {
     public func textView(_ textView: NSTextView, didChangeAttachmentTextRepresentation attachment: SFTextAttachment, previousRepresentedText previous: String) {
         notifyTextChanges(in: textView)
         let ts = storage(textView)
+        ts.attachmentTextDidChange()
         var fold = NSNotFoundRange
         let attachmentRange = ts.range(ofTextAttachment: attachment, foldRange: &fold)
         var stringRange: NSRange

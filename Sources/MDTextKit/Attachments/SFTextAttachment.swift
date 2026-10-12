@@ -6,7 +6,11 @@ import PolarMark
 /// `representedAttributedText` is the exact markdown it stands for, so the
 /// markdown can always be rebuilt from the attributed string.
 open class SFTextAttachment: NSTextAttachment {
-    public var representedAttributedText: NSAttributedString = NSAttributedString(string: "")
+    public var representedAttributedText: NSAttributedString = NSAttributedString(string: "") {
+        didSet { cachedRepresentedText = nil }
+    }
+    /// Every coordinate walk asks each attachment for its text; expanding it each time was the walk.
+    private var cachedRepresentedText: String?
     public var attachmentFileWrapper: FileWrapper?
     public var drawingRect: CGRect = .zero
     public var attachmentBaselineOffset: CGFloat = 0
@@ -43,7 +47,12 @@ open class SFTextAttachment: NSTextAttachment {
     }
 
     /// The markdown behind this attachment (expanding nested attachments).
-    public var representedText: String { representedAttributedText.stringByExpandingTextAttachments }
+    public var representedText: String {
+        if let cachedRepresentedText { return cachedRepresentedText }
+        let text = representedAttributedText.stringByExpandingTextAttachments
+        cachedRepresentedText = text
+        return text
+    }
 
     /// Subclasses rebuild cached images here.
     open func updateAttachmentImage() {}

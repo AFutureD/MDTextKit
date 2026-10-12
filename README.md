@@ -9,8 +9,9 @@ decorations (bullets, checkboxes, rules, fold pills, tables, images, callout ico
 
 | Target | Role |
 |---|---|
-| `PolarMark` | Block + inline parser, AST, annotated string with `PMK*` attribute keys, structural operations (`toggleInlineStyle`, `toggleBlockStyle`, `insertNewline`, `indent`, `toggleTask`, folding, selection / paste corrections). `replaceRange(_:withMarkdown:)` reports the block-aligned range that must be re-styled. |
-| `MDTextKit` | `MDTextStorage` (string is always Markdown, attachment index map), `MDAttributedStringRenderer` with the styler pipeline, `MDMarkdownHider` (0.01pt placeholder font + `MDOriginalAttributes`), `MDLayoutManager` (block backgrounds, quote bars, callout boxes, selection), `MDTextContainer` (centered column), `MDEditorController` (undo-aware text operations). |
+| `PolarMark` | Block + inline parser, AST, annotated string with `PMK*` attribute keys, structural operations (`toggleInlineStyle`, `toggleBlockStyle`, `insertNewline`, `indent`, `toggleTask`, folding, selection / paste corrections). `replaceRange(_:withMarkdown:)` re-parses from the block before the edit until a parsed block matches an old one again, and reports the block-aligned range that must be re-styled; `annotatedString(forStringRange:)` annotates only the blocks that range touches. |
+| `MDTextStorageCore` | The text storage's Objective-C primitives (`attributesAtIndex:effectiveRange:`, `length`), so TextKit's reads never bridge a dictionary into Swift. |
+| `MDTextKit` | `MDTextStorage` (the AST beside the attributed string, an attachment table for coordinate mapping, the Markdown assembled from it), `MDAttributedStringRenderer` with the styler pipeline, `MDMarkdownHider` (0.01pt placeholder font + `MDOriginalAttributes`), `MDLayoutManager` (block backgrounds, quote bars, callout boxes, selection), `MDTextContainer` (centered column), `MDEditorController` (undo-aware text operations). |
 | `MDTextKitUI` | `MDTextView` (attachment clicks, undo manager, pasteboard, drag and drop, `applyTheme`, `installTableEditing`, `imageFileResolver`, `openURL`), `MDEditorViewController` (assembly, theme changes, TextBundle open/save, bottom format bar, fold gutter), table cell editing, image loading. |
 | `SFThemeKit` | JSON `.theme` files with `$a.b.c` references, `SFThemeManager` + `SFStylable`, per-process font registration. A theme value may also be an `NSColor`, so a host passes dynamic colours. The kit bundles no theme; the demo ships `Default` and `Dark`. |
 | `TextBundle` | `.textbundle` packages and `.textpack` archives per textbundle.org spec v2: `info.json` (foreign metadata preserved), `text.*`, `assets/`. |
@@ -20,9 +21,9 @@ decorations (bullets, checkboxes, rules, fold pills, tables, images, callout ico
 
 ```
 keystroke
- └─ MDTextStorage.replaceCharacters           change recorded
+ └─ MDTextStorage.replaceCharacters           change recorded, attachment table shifted
  └─ MDTextStorage.processEditing
-     └─ PMKAST.replaceRange(withMarkdown:)     parse, compute reparsed range
+     └─ PMKAST.replaceRange(withMarkdown:)     incremental parse, compute reparsed range
      └─ delegate: MDEditorController.performStyling
          ├─ PMKAST.annotatedString(forRange:)  PMK* attributes
          ├─ MDAttributedStringRenderer         stylers in order

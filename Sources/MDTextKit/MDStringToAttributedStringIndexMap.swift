@@ -21,11 +21,15 @@ public final class MDStringToAttributedStringIndexMap: NSObject {
     // MARK: Enumeration primitives
 
     /// Calls `block(stringIndex, attributedIndex)` once per markdown character.
-    public static func enumerateStringAndAttributedStringIndexes(in s: NSAttributedString,
+    public static func enumerateStringAndAttributedStringIndexes(in source: NSAttributedString,
+                                                                 from start: (location: Int, markdownStart: Int)? = nil,
                                                                  using block: (Int, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {
-        var attrIndex = -1
-        var stringIndex = -1
-        s.enumerateAttribute(.attachment, in: NSRange(location: 0, length: s.length), options: []) { value, r, stop in
+        let s = source.walkable
+        // Counters as they stand just before `start`, so the walk continues exactly as from 0.
+        var attrIndex = (start?.location ?? 0) - 1
+        var stringIndex = (start?.markdownStart ?? 0) - 1
+        let from = start?.location ?? 0
+        s.enumerateAttribute(.attachment, in: NSRange(location: from, length: s.length - from), options: []) { value, r, stop in
             if value is SFTextAttachment {
                 guard r.length != 0 else { return }
                 for j in 0..<r.length {
@@ -103,7 +107,8 @@ public final class MDStringToAttributedStringIndexMap: NSObject {
 
     /// One-shot conversion
     /// without building the index table.
-    public static func attributedStringRange(forStringRange range: NSRange, in s: NSAttributedString) -> NSRange {
+    public static func attributedStringRange(forStringRange range: NSRange, in s: NSAttributedString,
+                                             from start: (location: Int, markdownStart: Int)? = nil) -> NSRange {
         if s.length == 0 && range.location != 0 { return NSNotFoundRange }
         if s.length == 0 && range.location == 0 && range.length == 0 { return NSRange(location: 0, length: 0) }
         guard range.location != NSNotFound else { return NSNotFoundRange }
@@ -113,7 +118,7 @@ public final class MDStringToAttributedStringIndexMap: NSObject {
         var sameAttrAsPrevious = false
         var lastAttrIndex = NSNotFound
         var lastStringIndex = NSNotFound
-        enumerateStringAndAttributedStringIndexes(in: s) { stringIndex, attrIndex, stop in
+        enumerateStringAndAttributedStringIndexes(in: s, from: start) { stringIndex, attrIndex, stop in
             if stringIndex == range.location && resultLoc == NSNotFound { resultLoc = attrIndex }
             let end = range.location + range.length
             if end == 0 || stringIndex == end - 1 { resultEnd = attrIndex + 1 }

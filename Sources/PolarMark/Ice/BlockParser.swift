@@ -162,6 +162,22 @@ struct BlockParser {
         return root
     }
 
+    /// Parses top-level blocks from `lineIndex` on, and stops once `stopAfter` accepts a finished block.
+    func parseBlocks(from lineIndex: Int, into root: PMKASTNode, stopAfter: @escaping (PMKASTNode) -> Bool) {
+        parseBlocks(into: root, lineRange: lineIndex..<lines.count, quoteLevel: 0, listLevel: 0, stopAfter: stopAfter)
+    }
+
+    /// The line that starts at `offset`, which must be a line start.
+    func lineIndex(at offset: Int) -> Int {
+        var low = 0
+        var high = lines.count - 1
+        while low < high {
+            let mid = (low + high + 1) / 2
+            if lines[mid].start <= offset { low = mid } else { high = mid - 1 }
+        }
+        return low
+    }
+
     struct TableCellRange { let cell: NSRange; let content: NSRange }
 
     /// Pipe positions of a table row (leading / trailing pipes optional, escaped pipes ignored).
@@ -287,11 +303,17 @@ struct BlockParser {
 
     /// Parses `lines[lineRange]` as a sequence of blocks living at `quoteLevel`.
     /// `listLevel` is the nesting level of the list item we are inside (0 = none).
-    private func parseBlocks(into parent: PMKASTNode, lineRange: Range<Int>, quoteLevel: Int, listLevel: Int) {
+    private func parseBlocks(into parent: PMKASTNode, lineRange: Range<Int>, quoteLevel: Int, listLevel: Int,
+                             stopAfter: ((PMKASTNode) -> Bool)? = nil) {
         var li = lineRange.lowerBound
         let endLine = lineRange.upperBound
+        var seen = parent.children.count
 
         while li < endLine {
+            if let stopAfter, parent.children.count > seen {
+                seen = parent.children.count
+                if stopAfter(parent.children[seen - 1]) { return }
+            }
             let line = lines[li]
             let prefix = quotePrefix(of: line)
 

@@ -5,7 +5,7 @@ import SFThemeKit
 
 /// `MDTextView : NSTextView` (MDTextKitUI, Swift). Routes every edit, key command and selection
 /// change through `MDEditorController`.
-@MainActor open class MDTextView: NSTextView, NSTextViewDelegate, MDUndoHost {
+@MainActor open class MDTextView: NSTextView, NSTextViewDelegate, MDUndoHost, MDTextStorageDelegate {
     public let editorController: MDEditorController
     private var trackingArea: NSTrackingArea?
     private var lastSelection = NSRange(location: 0, length: 0)
@@ -20,7 +20,19 @@ import SFThemeKit
         layoutManager.addTextContainer(container)
         storage.addLayoutManager(layoutManager)
         super.init(frame: frame, textContainer: container)
+        storage.mdDelegate = self
         setup()
+    }
+
+    /// A table that left the storage takes its cell editor and view with it; nothing scans for them.
+    nonisolated public func textStorage(_ storage: MDTextStorage, didRemoveAttachment attachment: NSTextAttachment) {
+        guard let view = attachment as? SFTextAttachmentView else { return }
+        let key = ObjectIdentifier(view)
+        // The storage is edited on the main thread, which is where the views live.
+        MainActor.assumeIsolated {
+            attachmentControllers[key]?.controller.view.removeFromSuperview()
+            attachmentControllers.removeValue(forKey: key)
+        }
     }
 
     public required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
@@ -136,23 +148,6 @@ import SFThemeKit
         editorController.performStyling(in: self)
         editorController.fixTypingAttributes(in: self)
         editorController.notifyTextChanges(in: self)
-        removeOrphanedAttachmentViews()
-    }
-
-    /// Drops the views and cell editors of view-backed attachments that left the text storage.
-    public func removeOrphanedAttachmentViews() {
-        var liveViews = Set<ObjectIdentifier>()
-        var liveAttachments = Set<ObjectIdentifier>()
-        mdTextStorage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: mdTextStorage.length), options: []) { v, _, _ in
-            guard let a = v as? SFTextAttachmentView else { return }
-            liveAttachments.insert(ObjectIdentifier(a))
-            if let c = a.attachmentViewController { liveViews.insert(ObjectIdentifier(c.view)) }
-        }
-        for sub in subviews where sub is MDTableAttachmentView && !liveViews.contains(ObjectIdentifier(sub)) { sub.removeFromSuperview() }
-        for key in attachmentControllers.keys where !liveAttachments.contains(key) {
-            attachmentControllers[key]?.controller.view.removeFromSuperview()
-            attachmentControllers.removeValue(forKey: key)
-        }
     }
 
     open override func shouldChangeText(inRanges ranges: [NSValue], replacementStrings: [String]?) -> Bool {
