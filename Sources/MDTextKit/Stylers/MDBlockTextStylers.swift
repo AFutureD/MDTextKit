@@ -260,7 +260,7 @@ import PolarMark
             cached.representedAttributedText = text
             return cached.copyAttachment()
         }
-        let size = baseFontSize * 1.2
+        let size = baseFontSize * 1.05
         let x = (columnSize - size) * 0.5
         let a = MDTaskTextAttachment(representedAttributedText: text)
         a.attachmentSize = CGSize(width: baseTabSize, height: size)
