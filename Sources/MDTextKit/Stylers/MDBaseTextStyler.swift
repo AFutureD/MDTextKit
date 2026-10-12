@@ -179,11 +179,10 @@ public extension NSMutableAttributedString {
         enumerateAttribute(.font, in: range, options: []) { value, run, _ in
             guard let font = value as? NSFont, font.fontName != "AppleColorEmoji" else { return }
             guard !font.fontDescriptor.symbolicTraits.contains(.italic) else { return }
-            // `init(descriptor:textTransform:)` already applies the descriptor's size, so only the skew goes into
-            // the transform here.
+            // The transform is the whole font matrix: the size scales it, and the skew leans 14 degrees.
             let radians = Double(acosf(0)) * -14.0 / 90.0
-            var transform = AffineTransform.identity
-            transform.m21 = -CGFloat(tanf(Float(radians)))
+            var transform = AffineTransform(scale: font.pointSize)
+            transform.m21 = -CGFloat(tanf(Float(radians))) * font.pointSize
             if let italic = NSFont(descriptor: font.fontDescriptor, textTransform: transform) {
                 self.addAttribute(.font, value: italic, range: run)
             }

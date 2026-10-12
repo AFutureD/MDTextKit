@@ -490,8 +490,10 @@ struct BlockParser {
                 li = listEndLine + 1
 
             case .text:
-                // ---- Table: a header row followed by a delimiter row with the same number of cells
+                // ---- Table: a header row followed by a delimiter row with the same number of cells.
+                // A line joins only once it ends in a newline, so a row still being typed stays text.
                 if li + 1 < endLine, let header = tableCells(of: line, contentStart: prefix.contentStart),
+                   lines[li + 1].end < text.count,
                    quotePrefix(of: lines[li + 1]).quoteLevel == quoteLevel,
                    let delimiter = tableDelimiterCells(of: lines[li + 1], contentStart: quotePrefix(of: lines[li + 1]).contentStart),
                    header.count == delimiter.count {
@@ -499,7 +501,7 @@ struct BlockParser {
                     while lj < endLine {
                         let l = lines[lj]
                         let p = quotePrefix(of: l)
-                        guard p.quoteLevel == quoteLevel, case .text = classify(l, from: p.contentStart), tableCells(of: l, contentStart: p.contentStart) != nil else { break }
+                        guard l.end < text.count, p.quoteLevel == quoteLevel, case .text = classify(l, from: p.contentStart), tableCells(of: l, contentStart: p.contentStart) != nil else { break }
                         lj += 1
                     }
                     let table = PMKASTNode(type: .table, range: rangeOf(lines: li..<lj))

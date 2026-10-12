@@ -24,6 +24,16 @@ import SFThemeKit
         setup()
     }
 
+    /// A table's grid is as wide as the column, so a new width lays every table out again.
+    open override func setFrameSize(_ newSize: NSSize) {
+        let widthChanged = newSize.width != frame.width
+        super.setFrameSize(newSize)
+        guard widthChanged, !attachmentControllers.isEmpty else { return }
+        for (_, entry) in attachmentControllers {
+            (entry.controller as? MDTableAttachmentViewController)?.relayout(needsLayout: true)
+        }
+    }
+
     /// A table that left the storage takes its cell editor and view with it; nothing scans for them.
     nonisolated public func textStorage(_ storage: MDTextStorage, didRemoveAttachment attachment: NSTextAttachment) {
         guard let view = attachment as? SFTextAttachmentView else { return }
@@ -108,7 +118,8 @@ import SFThemeKit
             guard let self else { return 500 }
             let r = self.editorController.attributedStringRenderer
             let column = r.textContainerMaxWidth > 0 ? r.textContainerMaxWidth : self.mdTextContainer.currentColumnWidth
-            return column - 2 * r.defaultParagraphIndent
+            // A view not yet laid out has no width; the first resize renders the tables again.
+            return column > 0 ? column - 2 * r.defaultParagraphIndent : 500
         }
         editorController.attributedStringRenderer.tableStyler.attachmentRenderer = { [weak self] att in
             guard let self else { return }
