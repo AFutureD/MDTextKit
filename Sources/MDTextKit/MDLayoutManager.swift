@@ -89,7 +89,10 @@ public final class MDLayoutManager: NSLayoutManager, @MainActor NSLayoutManagerD
         if storage.attribute(.mdSearchResultBackgroundColor, at: charRange.location, effectiveRange: nil) != nil { return }
         var fill = color
         if color == NSColor.unemphasizedSelectedContentBackgroundColor { fill = selectionInactiveColor }
-        fill.withAlphaComponent(0.5).setFill()
+        // An opaque selection colour draws at half strength; a translucent one already says how strong.
+        let alpha = fill.usingColorSpace(.sRGB)?.alphaComponent ?? 1
+        if alpha >= 1 { fill = fill.withAlphaComponent(0.5) }
+        fill.setFill()
         super.fillBackgroundRectArray(rectArray, count: rectCount, forCharacterRange: charRange, color: fill)
         color.setFill()
     }
