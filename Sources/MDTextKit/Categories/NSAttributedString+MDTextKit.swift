@@ -351,6 +351,23 @@ public extension NSAttributedString {
         (nonTemporaryAttributes(at: index)?[.font] as? NSFont) ?? font(at: index)
     }
 
+    /// The glyph box every visible font in `range` needs, as distances from the baseline.
+    func inkExtents(in range: NSRange) -> MDInkExtents? {
+        var out: MDInkExtents?
+        let ns = string as NSString
+        enumerateAttribute(.font, in: range, options: []) { value, run, _ in
+            guard let font = value as? NSFont, font.pointSize >= 1 else { return }
+            var ideographic = false
+            var other = false
+            for scalar in ns.substring(with: run).unicodeScalars where !scalar.properties.isWhitespace {
+                if scalar.isEastAsianWide { ideographic = true } else { other = true }
+            }
+            if other { out = MDInkExtents.union(out, font.inkExtents(probing: "hg")) }
+            if ideographic { out = MDInkExtents.union(out, font.inkExtents(probing: "国")) }
+        }
+        return out
+    }
+
     func paragraphStyle(at index: Int) -> NSParagraphStyle? {
         guard index < length else { return nil }
         return attribute(.paragraphStyle, at: index, effectiveRange: nil) as? NSParagraphStyle
@@ -488,6 +505,17 @@ public extension NSFont {
     /// `roundsd $0xA` in the binary, i.e. ceil(size * 0.05).
     static func basePointSize(forFontSize size: CGFloat) -> CGFloat { ceil(size * 0.05) }
 
+    /// The ink box of `sample`'s glyphs; the font's ascender and descender when the font lacks them.
+    func inkExtents(probing sample: String) -> MDInkExtents {
+        var characters = Array(sample.utf16)
+        var glyphs = [CGGlyph](repeating: 0, count: characters.count)
+        guard CTFontGetGlyphsForCharacters(self, &characters, &glyphs, characters.count) else {
+            return MDInkExtents(above: ascender, below: -descender)
+        }
+        let box = glyphs.reduce(CGRect.null) { $0.union(boundingRect(forCGGlyph: $1)) }
+        return MDInkExtents(above: box.maxY, below: -box.minY)
+    }
+
     var basePointSize: CGFloat { NSFont.basePointSize(forFontSize: pointSize) }
 
     /// `calculatedLineHeight` = ascent + descent + leading from CoreText (UI font variant for the system family).
@@ -569,5 +597,32 @@ public extension NSMutableParagraphStyle {
     /// (x86: `andpd` clears the sign of `descender` before the additions).
     func lineSpacing(forLineHeight lineHeight: CGFloat, font: NSFont) -> CGFloat {
         lineHeight - (font.ascender + abs(font.descender) + font.leading)
+    }
+}
+
+/// Vertical glyph extents measured from the baseline, in points.
+public struct MDInkExtents: Sendable {
+    public var above: CGFloat
+    public var below: CGFloat
+
+    public init(above: CGFloat, below: CGFloat) {
+        self.above = above
+        self.below = below
+    }
+
+    static func union(_ a: MDInkExtents?, _ b: MDInkExtents) -> MDInkExtents {
+        guard let a else { return b }
+        return MDInkExtents(above: max(a.above, b.above), below: max(a.below, b.below))
+    }
+}
+
+extension Unicode.Scalar {
+    /// Han, kana, hangul and the CJK punctuation and full-width forms that share their box.
+    var isEastAsianWide: Bool {
+        if properties.isIdeographic { return true }
+        switch value {
+        case 0x1100...0x11FF, 0x3000...0x30FF, 0x3130...0x318F, 0xAC00...0xD7AF, 0xFF00...0xFFEF: return true
+        default: return false
+        }
     }
 }

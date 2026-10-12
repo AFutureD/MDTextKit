@@ -468,13 +468,28 @@ public final class MDLayoutManager: NSLayoutManager, @MainActor NSLayoutManagerD
     /// A single-line run is clamped to the
     /// expected line height so taller glyphs do not inflate the pill.
     public func rectArrayForInlineDrawing(atGlyphRange range: NSRange, in container: NSTextContainer, at origin: CGPoint) -> [CGRect] {
-        let rects = nonCollapsedRectArray(forGlyphRange: range, in: container, at: origin)
-        guard rects.count == 1, let first = rects.first else { return rects }
-        let expected = expectedLineHeight(at: characterIndexForGlyph(at: range.location))
-        if expected < first.height {
-            return [CGRect(x: first.minX, y: first.minY + (first.height - expected), width: first.width, height: expected)]
+        var rects = nonCollapsedRectArray(forGlyphRange: range, in: container, at: origin)
+        let index = characterIndexForGlyph(at: range.location)
+        if rects.count == 1, let first = rects.first {
+            let expected = expectedLineHeight(at: index)
+            if expected < first.height {
+                rects = [CGRect(x: first.minX, y: first.minY + (first.height - expected), width: first.width, height: expected)]
+            }
         }
-        return rects
+        guard let storage = mdStorage else { return rects }
+        let lineHeight = expectedLineHeight(at: index)
+        return rects.map { rect in
+            let glyphs = glyphRange(forBoundingRect: rect.offsetBy(dx: -origin.x, dy: -origin.y), in: container)
+            let lineGlyphs = NSIntersectionRange(range, glyphs)
+            guard lineGlyphs.length > 0 else { return rect }
+            let chars = characterRange(forGlyphRange: lineGlyphs, actualGlyphRange: nil)
+            guard let ink = storage.inkExtents(in: chars) else { return rect }
+            let baseline = origin.y + lineFragmentRect(forGlyphAt: lineGlyphs.location, effectiveRange: nil).minY
+                + location(forGlyphAt: lineGlyphs.location).y
+            let height = max(lineHeight, ink.above + ink.below)
+            let middle = baseline - (ink.above - ink.below) / 2
+            return CGRect(x: rect.minX, y: middle - height / 2, width: rect.width, height: height)
+        }
     }
 
     /// Rounds the outer corners of

@@ -76,6 +76,27 @@ import SFThemeKit
         XCTAssertEqual(opened, [URL(string: "https://example.com/x")!])
     }
 
+    func testHighlightBoxIsCentredOnTheInk() {
+        for (md, probe) in [("plain ==完成笔记== text\n", "国"), ("plain ==highlighted== text\n", "hg")] {
+            let (tv, _) = makeTextView(md)
+            let lm = tv.mdLayoutManager
+            lm.ensureLayout(for: tv.textContainer!)
+            let ts = tv.mdTextStorage
+            let run = ts.attributedStringRange(fromStringRange: NSRange(location: 8, length: 4))
+            let glyphs = lm.glyphRange(forCharacterRange: run, actualCharacterRange: nil)
+            let rect = lm.rectArrayForInlineDrawing(atGlyphRange: glyphs, in: tv.textContainer!, at: .zero)[0]
+            let baseline = lm.lineFragmentRect(forGlyphAt: glyphs.location, effectiveRange: nil).minY + lm.location(forGlyphAt: glyphs.location).y
+            var font: NSFont?
+            ts.enumerateAttribute(.font, in: run) { value, _, stop in
+                if let f = value as? NSFont, f.pointSize >= 1 { font = f; stop.pointee = true }
+            }
+            let ink = font!.inkExtents(probing: probe)
+            let inkMiddle = baseline - (ink.above - ink.below) / 2
+            XCTAssertEqual(rect.midY, inkMiddle, accuracy: 0.01, md)
+            XCTAssertEqual(rect.height, lm.expectedLineHeight(at: run.location), accuracy: 0.01, md)
+        }
+    }
+
     func testThemeColorsMayBeDynamicNSColors() {
         let dynamic = NSColor(name: nil) { $0.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? .white : .black }
         let theme = SFTheme(name: "Host", jsonObject: ["editor": ["text color": dynamic, "cursor color": "$editor.text color"]])

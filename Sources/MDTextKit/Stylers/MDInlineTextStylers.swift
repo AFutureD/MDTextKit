@@ -308,7 +308,7 @@ import PolarMark
             }
             let font = s.font(at: marker.location) ?? NSFont.systemFont(ofSize: self.baseFontSize)
             let spacer = MDHighlighterSpacerTextAttachment()
-            spacer.attachmentSize = CGSize(width: font.pointSize * 0.25, height: self.baseFontSize)
+            spacer.attachmentSize = CGSize(width: font.pointSize * 0.4, height: self.baseFontSize)
             spacer.updateAttachmentImage()
             if isOpening {
                 spacer.attachmentSize = CGSize(width: spacer.attachmentSize.width - 1, height: spacer.attachmentSize.height)
