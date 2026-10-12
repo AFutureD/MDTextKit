@@ -150,7 +150,19 @@ import SFThemeKit
 @MainActor final class MDTableAttachmentView: NSView {
     weak var controller: MDTableAttachmentViewController?
     var image: NSImage? { didSet { needsDisplay = true } }
-    let moreButton = NSButton(image: NSImage(systemSymbolName: "ellipsis", accessibilityDescription: "Table options")!, target: nil, action: nil)
+    let moreButton = NSButton(image: MDTableAttachmentView.verticalEllipsis, target: nil, action: nil)
+
+    /// Three dots in a column; SF Symbols has no vertical ellipsis. A template, so it takes the button's tint.
+    static let verticalEllipsis: NSImage = {
+        let image = NSImage(size: NSSize(width: 20, height: 20), flipped: false) { _ in
+            NSColor.black.setFill()
+            for y in [4.5, 9.5, 14.5] { NSBezierPath(ovalIn: NSRect(x: 8.75, y: y - 1.25, width: 2.5, height: 2.5)).fill() }
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = "Table options"
+        return image
+    }()
     private var trackingArea: NSTrackingArea?
 
     override init(frame: NSRect) {
@@ -181,7 +193,7 @@ import SFThemeKit
         let p = convert(event.locationInWindow, from: nil)
         guard let c = controller, let ip = c.layout?.indexPath(for: p), let rect = c.layout?.rects[ip.row][ip.column] else { return }
         c.moreButtonIndexPath = ip
-        moreButton.setFrameOrigin(NSPoint(x: rect.maxX - moreButton.frame.width, y: rect.minY + 2))
+        moreButton.setFrameOrigin(NSPoint(x: rect.maxX - moreButton.frame.width - 2, y: rect.midY - moreButton.frame.height / 2))
     }
     override func scrollWheel(with event: NSEvent) { nextResponder?.scrollWheel(with: event) }
 
