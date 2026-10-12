@@ -218,10 +218,14 @@ open class SFTextAttachmentView: SFTextAttachment {
 
     public required init?(coder: NSCoder) { super.init(coder: coder) }
 
+    /// The image stands in only while the view is off screen; drawn under the view it doubles the text.
     open override func drawAttachment(in rect: CGRect) {
-        // Snapped to the backing grid, or the text inside the image resamples into a blur.
-        let aligned = MainActor.assumeIsolated { NSView.focusView?.backingAlignedRect(rect, options: .alignAllEdgesNearest) } ?? rect
-        temporaryImage?.draw(in: aligned)
+        let controller = attachmentViewController
+        let image = temporaryImage
+        MainActor.assumeIsolated {
+            if let view = controller?.view, view.superview != nil { return }
+            image?.draw(in: NSView.focusView?.backingAlignedRect(rect, options: .alignAllEdgesNearest) ?? rect)
+        }
     }
 }
 
