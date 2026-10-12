@@ -10,7 +10,7 @@ Port status: MDTextStorage, hider, differ, index map, all attachments, StyleKit 
 styler, renderer, layout manager, text operations, behaviour controller and editor controller are
 1:1. `PolarMark` (Ice parser + `PMKAST` operations) is still the clone's own implementation;
 `PMKAST+BearAPI.swift` exposes Bear's selectors and returns no results for unported operations.
-App bundle: `scripts/make_app.sh` → `dist/BearClone.app`; `--size 708x748` opens the window at Bear's
+App bundle: `tools/make_app.sh` → `dist/BearClone.app`; `--size 708x748` opens the window at Bear's
 editor-area size for screenshot comparisons; `--font-size 16` mirrors Bear's Settings › Typography › Font Size
 (the user setting overrides the theme's `editor.text size`). Bear's text area is 708pt wide next to an 11pt
 scroller, so use `--size 723x748` for a 708pt text area with the legacy scroller. `--dump-layout` prints every line
@@ -94,11 +94,11 @@ TOC and statistics panels, autocomplete.
 ## 启动方式
 
 ```bash
-cd ~/Developer/MDTextKit && ./scripts/make_app.sh && open -n dist/BearClone.app --args --size 723x748 --font-size 16 --file "$PWD/Samples/all-styles.md"
+cd ~/Developer/MDTextKit && ./tools/make_app.sh && open -n dist/BearClone.app --args --size 723x748 --font-size 16 --file "$PWD/Samples/all-styles.md"
 ```
 
-- `./scripts/make_app.sh`：`swift build` 后组装 `dist/BearClone.app`（每次改代码后重新执行）。
+- `./tools/make_app.sh`：`swift build` 后组装 `dist/BearClone.app`（每次改代码后重新执行）。
 - `--size 723x748`：窗口内容尺寸，与 Bear 的 708pt 文本区 + 15pt 滚动条对应；`--font-size 16`：对应 Bear 设置里的字号；`--file`：打开任意 Markdown 文件（相对路径图片会相对该文件所在目录解析）；`--dark`：Dark Graphite 主题。
 - 直接调试：`swift run BearCloneApp --size 723x748 --font-size 16`（没有 .app 外壳，字体/主题仍从 SFThemeKit 资源加载）。
 - 测试：`swift test`。
-- 辅助脚本在 `scripts/`（截图行列像素统计 `rows`/`cols`、拼图 `sidebyside`、Ghidra 导出 `ExportDecomp.java` + `clean.py`、按函数名取汇编 `asmfn.py`）；Bear 的反编译文本在 `reference/decomp/`。
+- 辅助脚本在 `tools/`（不入库）（截图行列像素统计 `rows`/`cols`、拼图 `sidebyside`、Ghidra 导出 `ExportDecomp.java` + `clean.py`、按函数名取汇编 `asmfn.py`）；Bear 的反编译文本在 `reference/decomp/`。
