@@ -13,8 +13,9 @@ final class MDSideActionsButton: NSButton {
 /// foldable headings and list items while the mouse hovers the left gutter.
 public final class MDSideActionsView: NSView {
     public var foldingBlock: ((Int) -> Void)?
-    public var fontSize: CGFloat = 15 { didSet { setupButtonsImages() } }
-    public var buttonColor: NSColor = .systemGray { didSet { setupButtonsImages() } }
+    // Bear: both setters rebuild the images, drop every pooled button and relayout immediately.
+    public var fontSize: CGFloat = 15 { didSet { setupButtonsImages(); invalidateAllDisclosureButtons(); updateActionsButtons(debounce: false) } }
+    public var buttonColor: NSColor = .systemGray { didSet { setupButtonsImages(); invalidateAllDisclosureButtons(); updateActionsButtons(debounce: false) } }
     public var accentColor: NSColor = .systemRed
     public var isEnabled = true
 
@@ -40,7 +41,9 @@ public final class MDSideActionsView: NSView {
                 self?.updateActionsButtons(debounce: !(self?.buttonsAreVisible ?? false)) })
             observers.append(NotificationCenter.default.addObserver(forName: NSView.frameDidChangeNotification, object: clip, queue: .main) { [weak self] _ in self?.updateActionsButtons(debounce: true) })
         }
-        observers.append(NotificationCenter.default.addObserver(forName: MDTextViewTextDidChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.updateActionsButtons(debounce: !(self?.buttonsAreVisible ?? false)) })
+        // Bear: textViewDidChange defers to the next main-queue turn (styling runs first).
+        observers.append(NotificationCenter.default.addObserver(forName: MDTextViewTextDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            DispatchQueue.main.async { guard let self = self else { return }; self.updateActionsButtons(debounce: !self.buttonsAreVisible) } })
     }
 
     public required init?(coder: NSCoder) { fatalError() }
@@ -57,14 +60,28 @@ public final class MDSideActionsView: NSView {
         for b in usedButtons + unusedButtons { b.image = chevronDown }
     }
 
-    private func reusableButton() -> MDSideActionsButton {
-        if let b = unusedButtons.popLast() { usedButtons.append(b); return b }
+    /// Bear: `buttonView()`
+    private func buttonView() -> MDSideActionsButton {
         let b = MDSideActionsButton(image: chevronDown ?? NSImage(), target: self, action: #selector(foldButtonClicked(_:)))
         b.isBordered = false
         b.imagePosition = .imageOnly
         b.setFrameSize(NSSize(width: fontSize * 1.5, height: fontSize * 1.5))
+        return b
+    }
+
+    /// Bear: `reusableDisclosureButton()` — pops the pool (or makes a new button) and marks it used.
+    private func reusableButton() -> MDSideActionsButton {
+        let b = unusedButtons.isEmpty ? buttonView() : unusedButtons.removeFirst()
         usedButtons.append(b)
         return b
+    }
+
+    /// Bear: `invalidateAllDisclosureButtons()` — every button leaves the view and the pool.
+    private func invalidateAllDisclosureButtons() {
+        unusedButtons.append(contentsOf: usedButtons)
+        usedButtons.removeAll()
+        unusedButtons.forEach { $0.removeFromSuperview() }
+        unusedButtons.removeAll()
     }
 
     @objc private func foldButtonClicked(_ sender: MDSideActionsButton) {
@@ -82,9 +99,12 @@ public final class MDSideActionsView: NSView {
         }
         guard let tv = hostingView, let ec = editorController, isEnabled else { return }
         let lm = tv.mdLayoutManager, tc = tv.mdTextContainer, ts = tv.mdTextStorage
-        for b in usedButtons { b.removeFromSuperview(); unusedButtons.append(b) }
+        // Bear: used buttons go back to the pool first; whatever is not reused is removed at the end,
+        // so a relayout during scrolling never churns the text view's subviews.
+        unusedButtons.append(contentsOf: usedButtons)
         usedButtons.removeAll()
         hoverRects.removeAll()
+        defer { unusedButtons.forEach { $0.removeFromSuperview() } }
         let visibleGlyphs = lm.glyphRange(forBoundingRect: tv.visibleRect, in: tc)
         let visible = lm.characterRange(forGlyphRange: visibleGlyphs, actualGlyphRange: nil)
         guard visible.length > 0 else { return }
@@ -98,7 +118,7 @@ public final class MDSideActionsView: NSView {
             let i = run.location
             let r = lm.boundingRect(forGlyphRange: NSRange(location: lm.glyphIndexForCharacter(at: i), length: 1), in: tc)
             let btn = reusableButton()
-            tv.addSubview(btn)
+            if btn.superview !== tv { tv.addSubview(btn) }
             btn.range = run
             btn.alphaValue = buttonsAreVisible ? 1 : 0
             let font = ts.attribute(.font, at: i, effectiveRange: nil) as? NSFont
@@ -126,7 +146,7 @@ public final class MDSideActionsView: NSView {
                   ec.hasFoldableContent(at: i, in: tv), let att = ts.textAttachment(at: i) as? SFTextAttachment else { return }
             let r = lm.boundingRect(forGlyphRange: lm.glyphRange(forCharacterRange: run, actualCharacterRange: nil), in: tc)
             let btn = reusableButton()
-            tv.addSubview(btn)
+            if btn.superview !== tv { tv.addSubview(btn) }
             btn.range = run
             btn.alphaValue = buttonsAreVisible ? 1 : 0
             let font = ts.attribute(.font, at: i, effectiveRange: nil) as? NSFont
@@ -161,20 +181,26 @@ public final class MDSideActionsView: NSView {
     public override func mouseEntered(with event: NSEvent) { showButtons(animated: true) }
     public override func mouseExited(with event: NSEvent) { hideButtons(animated: true) }
 
+    /// Bear: `showButtons(animated:)` — only when hidden and enabled; a pending debounced relayout is
+    /// fired right away instead of rebuilding here (rebuilding from mouseEntered would re-create the
+    /// tracking areas and re-enter itself while scrolling).
     private func showButtons(animated: Bool) {
-        buttonsAreVisible = true
-        updateActionsButtons(debounce: false)
+        guard !buttonsAreVisible, isEnabled else { return }
+        if let t = debounceTimer { debounceTimer = nil; t.fire() }
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = animated ? 0.3 : 0
             usedButtons.forEach { $0.animator().alphaValue = 1 }
         }
+        buttonsAreVisible = true
     }
 
+    /// Bear: `hideButtons(animated:)` / `mouseExited` — no-op while already hidden.
     private func hideButtons(animated: Bool) {
-        buttonsAreVisible = false
+        guard buttonsAreVisible else { return }
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = animated ? 0.3 : 0
             usedButtons.forEach { $0.animator().alphaValue = 0 }
         }
+        buttonsAreVisible = false
     }
 }
