@@ -40,7 +40,17 @@ public final class MDTextStorage: NSTextStorage {
 
     // MARK: NSAttributedString primitives
 
-    public override var string: String { imp.string }
+    /// Bridged once per edit: TextKit asks for the string and its length on every attribute run.
+    private var cachedString: String?
+
+    public override var string: String {
+        if let cachedString { return cachedString }
+        let string = imp.string
+        cachedString = string
+        return string
+    }
+
+    public override var length: Int { imp.length }
 
     public override func attributes(at location: Int, effectiveRange range: NSRangePointer?) -> [NSAttributedString.Key: Any] {
         if location < imp.length { return imp.attributes(at: location, effectiveRange: range) }
@@ -62,6 +72,7 @@ public final class MDTextStorage: NSTextStorage {
     public override func replaceCharacters(in range: NSRange, with str: String) {
         changeTracker.trackReplaceCharacters(in: range, in: imp, with: str)
         imp.replaceCharacters(in: range, with: NSAttributedString(string: str))
+        cachedString = nil
         edited(.editedCharacters, range: range, changeInLength: (str as NSString).length - range.length)
     }
 
