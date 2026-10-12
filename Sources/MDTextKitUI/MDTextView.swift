@@ -209,6 +209,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
 
     // Bear: MDTextView.mouseDown only calls super; attachment clicks arrive through the cell tracking →
     // `textView:clickedOnCell:inRect:atIndex:` (NoteEditorViewController) → `didInteract(with:at:)` (BearCore).
+    @objc(textView:clickedOnCell:inRect:atIndex:)
     public func textView(_ textView: NSTextView, clickedOnCell cell: NSTextAttachmentCellProtocol, in cellFrame: NSRect, at charIndex: Int) {
         guard let att = cell.attachment as? SFTextAttachment else { return }
         let flags = NSApp.currentEvent?.modifierFlags ?? []
@@ -230,6 +231,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         }
     }
 
+    @objc(textView:doubleClickedOnCell:inRect:atIndex:)
     public func textView(_ textView: NSTextView, doubleClickedOnCell cell: NSTextAttachmentCellProtocol, in cellFrame: NSRect, at charIndex: Int) {
         self.textView(textView, clickedOnCell: cell, in: cellFrame, at: charIndex)
     }
