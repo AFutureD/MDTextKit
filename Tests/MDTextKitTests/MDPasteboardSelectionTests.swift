@@ -19,7 +19,7 @@ final class MDPasteboardSelectionTests: XCTestCase {
         _ = win
         let tv = vc.textView!
         tv.setSelectedRange(NSRange(location: 0, length: tv.mdTextStorage.length))
-        let pb = NSPasteboard(name: NSPasteboard.Name("bearclone.test.\(UUID().uuidString)"))
+        let pb = NSPasteboard(name: NSPasteboard.Name("mdtextkit.test.\(UUID().uuidString)"))
         pb.clearContents()
         XCTAssertTrue(tv.writablePasteboardTypes.contains(MDTextView.attributedStringPboardType))
         XCTAssertTrue(tv.writablePasteboardTypes.contains(.rtfd))

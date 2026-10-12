@@ -6,9 +6,9 @@ import PolarMark
 
 private extension CGRect {
     /// Bear's `frintm/frintp/frintm/frintm`: floor x, ceil y, floor width, floor height.
-    var bearFloorCeil: CGRect { CGRect(x: floor(minX), y: ceil(minY), width: floor(width), height: floor(height)) }
+    var pixelFloorCeil: CGRect { CGRect(x: floor(minX), y: ceil(minY), width: floor(width), height: floor(height)) }
     /// Bear's `frinta` on all four fields: round half away from zero.
-    var bearRounded: CGRect {
+    var pixelRounded: CGRect {
         CGRect(x: minX.rounded(.toNearestOrAwayFromZero), y: minY.rounded(.toNearestOrAwayFromZero),
                width: width.rounded(.toNearestOrAwayFromZero), height: height.rounded(.toNearestOrAwayFromZero))
     }
@@ -59,7 +59,7 @@ public final class MDATXHeadingAttachment: SFTextAttachment {
 
     /// Bear: `numberAttributedStringWithFontSize:` — right-aligned level number in the accent color.
     public func numberAttributedString(fontSize: CGFloat) -> NSAttributedString {
-        let font = NSFont(name: "BearSansUI-Bold", size: fontSize) ?? NSFont.boldSystemFont(ofSize: fontSize)
+        let font = NSFont.boldSystemFont(ofSize: fontSize)
         let p = NSMutableParagraphStyle()
         p.alignment = .right
         return NSAttributedString(string: "\(level)", attributes: [.foregroundColor: accentColor ?? .black, .font: font, .paragraphStyle: p])
@@ -130,7 +130,7 @@ public final class MDUnorderedListTextAttachment: SFTextAttachment {
     public var bulletBorderWidth: CGFloat = 1
 
     public override func drawAttachment(in rect: CGRect) {
-        var r = rect.bearFloorCeil
+        var r = rect.pixelFloorCeil
         let color = bulletColor ?? .black
         switch bulletLevel & 3 {
         case 0:
@@ -189,7 +189,7 @@ public final class MDTaskTextAttachment: SFTextAttachment {
     public var checkColor: NSColor?
 
     public override func drawAttachment(in rect: CGRect) {
-        let r = rect.bearFloorCeil.insetBy(dx: borderWidth * 0.5, dy: borderWidth * 0.5)
+        let r = rect.pixelFloorCeil.insetBy(dx: borderWidth * 0.5, dy: borderWidth * 0.5)
         drawCheckboxBody(for: r)
         if completed { drawCheckboxCheck(for: r) }
     }
@@ -301,7 +301,7 @@ public final class MDThematicBreakTextAttachment: SFTextAttachment {
 public final class MDHardLineBreakTextAttachment: SFTextAttachment {
     public var arrowColor: NSColor?
     public override func drawAttachment(in rect: CGRect) {
-        MDTextKitStyleKit.drawHardLineBreak(frame: rect.bearFloorCeil, fillColor: arrowColor ?? .black)
+        MDTextKitStyleKit.drawHardLineBreak(frame: rect.pixelFloorCeil, fillColor: arrowColor ?? .black)
     }
     public override func decode(with coder: NSCoder) { super.decode(with: coder); arrowColor = coder.decodeObject(of: NSColor.self, forKey: "arrowColor") }
     public override func encode(with coder: NSCoder) { super.encode(with: coder); coder.encode(arrowColor, forKey: "arrowColor") }
@@ -313,7 +313,7 @@ public final class MDHighlighterTextAttachment: SFTextAttachment {
     public var color: NSColor?
     public var accentColor: NSColor?
     public override func drawAttachment(in rect: CGRect) {
-        MDTextKitStyleKit.drawHighlighter(frame: rect.bearRounded, fillColor: color ?? .yellow, accentColor: accentColor ?? .yellow)
+        MDTextKitStyleKit.drawHighlighter(frame: rect.pixelRounded, fillColor: color ?? .yellow, accentColor: accentColor ?? .yellow)
     }
     public override func decode(with coder: NSCoder) { super.decode(with: coder); color = coder.decodeObject(of: NSColor.self, forKey: "color"); accentColor = coder.decodeObject(of: NSColor.self, forKey: "accentColor") }
     public override func encode(with coder: NSCoder) { super.encode(with: coder); coder.encode(color, forKey: "color"); coder.encode(accentColor, forKey: "accentColor") }
@@ -325,7 +325,7 @@ public final class MDLinkTextAttachment: SFTextAttachment {
     public var color: NSColor?
 
     public override func drawAttachment(in rect: CGRect) {
-        MDTextKitStyleKit.drawLinkIcon(frame: rect.bearRounded, fillColor: color ?? .black)
+        MDTextKitStyleKit.drawLinkIcon(frame: rect.pixelRounded, fillColor: color ?? .black)
     }
 
     /// Bear: `url` — the PMKLinkURL carried by the represented text.

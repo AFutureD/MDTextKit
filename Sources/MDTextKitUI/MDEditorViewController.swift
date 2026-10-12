@@ -117,7 +117,7 @@ public final class MDEditorViewController: NSViewController, SFStylable {
     public func open(textBundleAt url: URL) throws { load(textBundle: try TextBundle(contentsOf: url)) }
 
     @discardableResult
-    public func save(toTextBundleAt url: URL, creatorIdentifier: String = Bundle.main.bundleIdentifier ?? "net.bearclone.app") throws -> TextBundle {
+    public func save(toTextBundleAt url: URL, creatorIdentifier: String = Bundle.main.bundleIdentifier ?? "dev.mdtextkit.app") throws -> TextBundle {
         let bundle = textBundle ?? TextBundle(text: markdown)
         bundle.text = markdown
         let creatorURL = Bundle.main.bundleURL

@@ -15,9 +15,9 @@ final class TextBundleTests: XCTestCase {
         let b = TextBundle(text: "# Hi\n\n![](assets/pic.png)\n")
         let rel = try b.addAsset(Data([0x89, 0x50, 0x4E, 0x47]), preferredName: "Pic.PNG")
         XCTAssertEqual(rel, "assets/pic.png")
-        b.info[namespace: "com.example.bearclone"] = ["version": 1, "tags": ["a", "b"]]
+        b.info[namespace: "com.example.mdtextkit"] = ["version": 1, "tags": ["a", "b"]]
         let dest = tmp.appendingPathComponent("note.textbundle")
-        try b.write(to: dest, creatorIdentifier: "com.example.bearclone", creatorURL: URL(string: "file:///Applications/BearClone.app"))
+        try b.write(to: dest, creatorIdentifier: "com.example.mdtextkit", creatorURL: URL(string: "file:///Applications/MDTextKitDemo.app"))
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: dest.appendingPathComponent("info.json").path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: dest.appendingPathComponent("text.md").path))
@@ -27,8 +27,8 @@ final class TextBundleTests: XCTestCase {
         XCTAssertEqual(r.text, b.text)
         XCTAssertEqual(r.info.version, 2)
         XCTAssertEqual(r.info.type, TextBundleInfo.markdownType)
-        XCTAssertEqual(r.info.creatorIdentifier, "com.example.bearclone")
-        XCTAssertEqual(r.info[namespace: "com.example.bearclone"]["version"] as? Int, 1)
+        XCTAssertEqual(r.info.creatorIdentifier, "com.example.mdtextkit")
+        XCTAssertEqual(r.info[namespace: "com.example.mdtextkit"]["version"] as? Int, 1)
         XCTAssertEqual(r.assetPaths, ["assets/pic.png"])
         XCTAssertEqual(r.data(forAsset: "assets/pic.png")?.count, 4)
         XCTAssertEqual(r.assetURL(for: "assets/pic.png")?.lastPathComponent, "pic.png")
@@ -38,16 +38,16 @@ final class TextBundleTests: XCTestCase {
         let dest = tmp.appendingPathComponent("shared.textbundle")
         try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
         let foreign: [String: Any] = ["version": 2, "type": "net.daringfireball.markdown",
-                                      "net.shinyfrog.bear": ["version": 1, "modificationDate": "2026-01-01"]]
+                                      "com.example.otherapp": ["version": 1, "modificationDate": "2026-01-01"]]
         try JSONSerialization.data(withJSONObject: foreign).write(to: dest.appendingPathComponent("info.json"))
         try "old".write(to: dest.appendingPathComponent("text.markdown"), atomically: true, encoding: .utf8)
 
         let mine = TextBundle(text: "new")
-        try mine.write(to: dest, creatorIdentifier: "com.example.bearclone")
+        try mine.write(to: dest, creatorIdentifier: "com.example.mdtextkit")
         let r = try TextBundle(contentsOf: dest)
         XCTAssertEqual(r.text, "new")
-        XCTAssertEqual(r.info[namespace: "net.shinyfrog.bear"]["version"] as? Int, 1, "other apps' metadata must survive")
-        XCTAssertEqual(r.info.creatorIdentifier, "com.example.bearclone")
+        XCTAssertEqual(r.info[namespace: "com.example.otherapp"]["version"] as? Int, 1, "other apps' metadata must survive")
+        XCTAssertEqual(r.info.creatorIdentifier, "com.example.mdtextkit")
         // stale text.markdown replaced by text.md
         XCTAssertFalse(FileManager.default.fileExists(atPath: dest.appendingPathComponent("text.markdown").path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: dest.appendingPathComponent("text.md").path))

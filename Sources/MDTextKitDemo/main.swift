@@ -6,9 +6,9 @@ import TextBundle
 import UniformTypeIdentifiers
 
 let sampleNote = """
-# BearClone Editor
+# MDTextKit
 
-Welcome to a **Swift** re-implementation of Bear's editor pipeline: *PolarMark* → *MDTextKit* → *MDTextKitUI*.
+Welcome to a **Swift** Markdown editor: *PolarMark* → *MDTextKit* → *MDTextKitUI*.
 Markers like `**` and `*` stay in the text but are hidden until the caret enters the construct. #demo #markdown/editor
 
 ## Lists and tasks
@@ -47,7 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var editor: MDEditorViewController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // `--font-size 16` mirrors Bear's Settings › Typography › Font Size, which overrides the theme's text size.
+        // `--font-size 16` is the user font size setting, which overrides the theme's text size.
         if let i = CommandLine.arguments.firstIndex(of: "--font-size"), i + 1 < CommandLine.arguments.count, let size = Double(CommandLine.arguments[i + 1]) {
             SFThemeManager.shared.overrides["editor.text size"] = size
         }
@@ -60,7 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable],
                           backing: .buffered, defer: false)
-        window.title = "BearClone"
+        window.title = "MDTextKit"
         window.contentViewController = editor
         window.setContentSize(size)
         window.center()
@@ -124,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if i + 2 < args.count, let caret = Int(args[i + 2]) {
                 editor.textView.setSelectedRange(NSRange(location: caret, length: 0))
             }
-            if args.contains("--dark"), let t = SFThemeManager.bundledTheme(named: "Dark Graphite") { SFThemeManager.shared.loadTheme(t) }
+            if args.contains("--dark"), let t = SFThemeManager.bundledTheme(named: "Dark") { SFThemeManager.shared.loadTheme(t) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
                 let tv = editor.textView!
                 tv.layoutManager?.ensureLayout(for: tv.textContainer!)
@@ -154,7 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: File menu — TextBundle / TextPack / plain markdown
 
-    private var documentURL: URL? { didSet { window.title = documentURL?.lastPathComponent ?? "BearClone" } }
+    private var documentURL: URL? { didSet { window.title = documentURL?.lastPathComponent ?? "MDTextKit" } }
 
     private static var textBundleTypes: [UTType] {
         var t: [UTType] = []
@@ -230,7 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let appItem = NSMenuItem(); main.addItem(appItem)
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "Quit BearClone", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit MDTextKit Demo", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
 
         let fileItem = NSMenuItem(title: "File", action: nil, keyEquivalent: ""); main.addItem(fileItem)

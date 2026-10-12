@@ -57,8 +57,8 @@ final class MDLayoutDumpTests: XCTestCase {
                 st.beginEditing()
                 switch exp {
                 case "nofont": st.removeAttribute(.font, range: NSRange(location: hrIndex, length: 1))
-                case "bigNL": st.addAttribute(.font, value: NSFont(name: "BearSansUI-Regular", size: 40)!, range: NSRange(location: hrIndex + 1, length: 1))
-                case "bigAtt": st.addAttribute(.font, value: NSFont(name: "BearSansUI-Regular", size: 40)!, range: NSRange(location: hrIndex, length: 1))
+                case "bigNL": st.addAttribute(.font, value: st.font(at: 0)!.withSize(40), range: NSRange(location: hrIndex + 1, length: 1))
+                case "bigAtt": st.addAttribute(.font, value: st.font(at: 0)!.withSize(40), range: NSRange(location: hrIndex, length: 1))
                 case "nofontNL": st.removeAttribute(.font, range: NSRange(location: hrIndex + 1, length: 1))
                 case "zwsp": st.replaceCharacters(in: NSRange(location: hrIndex + 1, length: 0), with: NSAttributedString(string: "\u{200B}", attributes: st.attributes(at: hrIndex + 1, effectiveRange: nil)))
                 case "cellY0": (st.attribute(.attachment, at: hrIndex, effectiveRange: nil) as? SFTextAttachment)?.attachmentBaselineOffset = 0

@@ -14,7 +14,7 @@ public final class SFThemeManager {
     public static let themeDidChangeNotification = Notification.Name("SFThemeManagerThemeDidChange")
 
     public private(set) var currentTheme: SFTheme
-    /// Bear: user typography settings (Settings › Typography) override theme values such as
+    /// User typography settings override theme values such as
     /// "editor.text size", "editor.text font", "editor.line height multiplier", "editor.line width multiplier".
     public var overrides: [String: Any] = [:] {
         didSet { fontCache.removeAll(); styleRegisteredStylableObjects() }
@@ -23,8 +23,8 @@ public final class SFThemeManager {
     private var fontCache: [String: NSFont] = [:]
 
     public init(theme: SFTheme? = nil) {
-        SFFontLoader.registerBearFonts()
-        currentTheme = theme ?? SFThemeManager.bundledTheme(named: "Red Graphite") ?? SFTheme(name: "Empty", jsonObject: [:])
+        SFFontLoader.registerFontsFromEnvironment()
+        currentTheme = theme ?? SFThemeManager.bundledTheme(named: "Default") ?? SFTheme(name: "Empty", jsonObject: [:])
     }
 
     // MARK: Bundled themes
@@ -89,6 +89,8 @@ public final class SFThemeManager {
         let font: NSFont
         switch name {
         case "system", "": font = NSFont.systemFont(ofSize: size)
+        case "system-bold": font = NSFont.boldSystemFont(ofSize: size)
+        case "system-semibold": font = NSFont.systemFont(ofSize: size, weight: .semibold)
         case "system-rounded": font = NSFont.systemFont(ofSize: size).withDesign(.rounded)
         case "system-serif": font = NSFont.systemFont(ofSize: size).withDesign(.serif)
         case "system-mono": font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)

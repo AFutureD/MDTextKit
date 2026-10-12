@@ -1,18 +1,20 @@
 import AppKit
 import CoreText
 
-/// Registers Bear's bundled editor fonts (BearSansUI, BearSansUIHeading, RobotoMono, OpenDyslexic) for this
-/// process only, so themes can ask for them by PostScript name exactly like Bear does. Nothing is installed
-/// into the user's font library.
+/// Registers editor fonts for this process only (nothing is installed into the user's font library), so
+/// themes can refer to them by PostScript name. Fonts come from the `MDTEXTKIT_FONTS_DIR` environment
+/// variable and from `registerFonts(in:)` calls made by the host application.
 public enum SFFontLoader {
-    public static let bearResourcesURL = URL(fileURLWithPath: "/Applications/Bear.app/Contents/Resources")
-    private static var registered = false
+    public static let fontsDirectoryEnvironmentKey = "MDTEXTKIT_FONTS_DIR"
+    private static var registeredDirectories = Set<URL>()
 
+    /// Registers every .otf/.ttf file in `directory`; returns the registered file names.
     @discardableResult
-    public static func registerBearFonts(from directory: URL = bearResourcesURL) -> [String] {
-        guard !registered else { return [] }
-        registered = true
-        let urls = ((try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? [])
+    public static func registerFonts(in directory: URL) -> [String] {
+        let dir = directory.standardizedFileURL
+        guard !registeredDirectories.contains(dir) else { return [] }
+        registeredDirectories.insert(dir)
+        let urls = ((try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [])
             .filter { ["otf", "ttf"].contains($0.pathExtension.lowercased()) }
         var names: [String] = []
         for url in urls {
@@ -22,5 +24,12 @@ public enum SFFontLoader {
             }
         }
         return names
+    }
+
+    /// Registers the directory named by `MDTEXTKIT_FONTS_DIR`, if set.
+    @discardableResult
+    public static func registerFontsFromEnvironment() -> [String] {
+        guard let path = ProcessInfo.processInfo.environment[fontsDirectoryEnvironmentKey], !path.isEmpty else { return [] }
+        return registerFonts(in: URL(fileURLWithPath: path))
     }
 }

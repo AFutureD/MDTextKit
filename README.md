@@ -1,50 +1,22 @@
-# BearClone
+# MDTextKit
 
-Swift re-implementation of the Markdown editor pipeline found in Bear.app 3.0.1
-(`PolarMark` → `MDTextKit` → `MDTextKitUI`). `MDTextKit` and `MDTextKitUI` are ported
-function by function from the Ghidra decompilation of the shipped frameworks
-(`reference/decomp/`, not tracked by git).
-Pure Swift, SwiftPM, macOS 13+, TextKit 1.
+A Markdown editor engine for macOS written in Swift (SwiftPM, macOS 13+, TextKit 1):
+`PolarMark` (parser + AST) → `MDTextKit` (text storage, stylers, layout) → `MDTextKitUI` (text view, editor controller).
+The storage string is always the Markdown source; markers are hidden until the caret enters a construct, and block
+decorations (bullets, checkboxes, rules, fold pills, tables, images, callout icons) are text attachments drawn by the kit.
 
-Port status: MDTextStorage, hider, differ, index map, all attachments, StyleKit paths, every
-styler, renderer, layout manager, text operations, behaviour controller and editor controller are
-1:1. `PolarMark` (Ice parser + `PMKAST` operations) is still the clone's own implementation;
-`PMKAST+BearAPI.swift` exposes Bear's selectors and returns no results for unported operations.
-App bundle: `tools/make_app.sh` → `dist/BearClone.app`; `--size 708x748` opens the window at Bear's
-editor-area size for screenshot comparisons; `--font-size 16` mirrors Bear's Settings › Typography › Font Size
-(the user setting overrides the theme's `editor.text size`). Bear's text area is 708pt wide next to an 11pt
-scroller, so use `--size 723x748` for a 708pt text area with the legacy scroller. `--dump-layout` prints every line
-fragment (top, height, baseline) and exits. Themes are Bear's own `.theme` files (Red Graphite, Dark Graphite)
-and Bear's bundled fonts are registered process-wide from `/Applications/Bear.app` when present.
+## Targets
 
-## Run
+| Target | Role |
+|---|---|
+| `PolarMark` | Block + inline parser, AST, annotated string with `PMK*` attribute keys, structural operations (`toggleInlineStyle`, `toggleBlockStyle`, `insertNewline`, `indent`, `toggleTask`, folding, selection / paste corrections). `replaceRange(_:withMarkdown:)` reports the block-aligned range that must be re-styled. |
+| `MDTextKit` | `MDTextStorage` (string is always Markdown, attachment index map), `MDAttributedStringRenderer` with the styler pipeline, `MDMarkdownHider` (0.01pt placeholder font + `MDOriginalAttributes`), `MDLayoutManager` (block backgrounds, quote bars, callout boxes, selection), `MDTextContainer` (centered column), `MDEditorController` (undo-aware text operations). |
+| `MDTextKitUI` | `MDTextView` (attachment clicks, undo manager, pasteboard, drag and drop), `MDEditorViewController` (assembly, theme changes, TextBundle open/save, bottom format bar, fold gutter), table cell editing, image loading. |
+| `SFThemeKit` | JSON `.theme` files with `$a.b.c` references, `SFThemeManager` + `SFStylable`, per-process font registration. Bundled themes: `Default`, `Dark`. |
+| `TextBundle` | `.textbundle` packages and `.textpack` archives per textbundle.org spec v2: `info.json` (foreign metadata preserved), `text.*`, `assets/`. |
+| `MDTextKitDemo` | Demo window with Format / View / File menus. |
 
-```bash
-swift run BearCloneApp
-```
-
-```bash
-swift test
-```
-
-Offscreen render for visual checks (no window interaction needed):
-
-```bash
-swift run BearCloneApp --snapshot /tmp/editor.png 120 --dark
-```
-
-## Targets and their Bear counterparts
-
-| Target | Bear framework | Role |
-|---|---|---|
-| `PolarMark` | PolarMark.framework (C++ `Ice::` engine + `PMKAST`) | Block + inline parser, AST, annotated string with `PMK*` attribute keys, structural operations (`toggleInlineStyle`, `toggleBlockStyle`, `insertNewline`, `indent`, `toggleTask`, ...). `replaceRange(_:withMarkdown:)` reports the block-aligned range that must be re-styled. |
-| `MDTextKit` | MDTextKit.framework (ObjC) | `MDTextStorage` (string is always markdown), `MDAttributedStringRenderer` with the styler pipeline in Bear's order, `MDMarkdownHider` (0.01pt placeholder font + `MDOriginalAttributes`), `MDLayoutManager` (block backgrounds, quote bars, bullets, checkboxes, rules, fence language label), `MDTextContainer` (centered column), `MDEditorController`. |
-| `MDTextKitUI` | MDTextKitUI.framework (Swift) | `MDTextView` (checkbox hit-testing, pointer feedback), `MDEditorViewController` (assembly, theme changes, TextBundle open/save). |
-| `SFThemeKit` | SFThemeKit.framework | JSON `.theme` files with `$a.b.c` references, `SFThemeManager` + `SFStylable`. Two bundled themes: `Default`, `Dark`. |
-| `TextBundle` | TextBundle.framework | `.textbundle` packages and `.textpack` archives per textbundle.org spec v2: `info.json` (foreign metadata preserved), `text.*`, `assets/`. |
-| `BearCloneApp` | Bear.app | Demo window with Format / View / File menus. |
-
-## Editing flow (same as Bear)
+## Editing flow
 
 ```
 keystroke
@@ -58,47 +30,40 @@ keystroke
  └─ selection change → MDMarkdownHider.showHideMarkdown
 ```
 
-## What is implemented
+## Features
 
-Headings, paragraphs, thematic breaks, fenced code (with regex syntax highlighting for
-swift / js / python / go / rust / c / bash / sql), blockquotes (nested), bullet / numbered / task
-lists (nested by tabs), strong, emphasis, strikethrough, underline, highlighter, inline code,
-links, images (as links), hashtags, autolinks, escapes, hard line breaks. Marker hiding,
-list continuation on return, smart backspace on markers, tab / shift-tab indentation,
-format toggles with undo, themes, TextBundle / TextPack open and save.
+Headings, paragraphs, thematic breaks, fenced code, blockquotes (nested), callouts (`> [!NOTE]`, `[!TIP]`,
+`[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`), bullet / numbered / task lists (nested by tabs, click a checkbox to
+toggle), strong, emphasis, strikethrough, underline, highlighter, inline code, links, autolinks, escapes, hard line
+breaks, images (`![alt](relative/path.png)` resolved against the note's folder or the TextBundle assets), GitHub pipe
+tables (rendered as a grid; click a cell to edit in place, Tab / Shift-Tab / arrows move between cells, ⋮ menu for
+rows, columns, alignment and copy as Markdown / CSV / HTML), folding (`<!-- {"fold":true} -->` at the end of a heading
+or list item line; Format › Toggle Fold / Fold All / Unfold All, gutter chevrons on hover, ⌘-click a heading marker).
+Marker hiding, list continuation on return, smart backspace on markers, tab / shift-tab indentation, format toggles,
+a dedicated undo manager, rich-text and Markdown pasteboard, line drag and drop, themes, TextBundle / TextPack open
+and save.
 
-## Deliberate differences from Bear
+Hashtags are parsed but intentionally not styled (`RuleConfig.hashtags = false`).
 
-- Bullets, numbers, checkboxes, rules are drawn by the layout manager over hidden marker
-  text instead of replacing text with `SFTextAttachment` subclasses. The storage string
-  therefore equals the markdown at all times and no index map is needed.
-- Code highlighting is a regex tokenizer, not Prism.js in a `JSContext`.
+Not implemented: footnotes, wiki links, math and Mermaid rendering, syntax highlighting inside code blocks, bidi
+handling, YAML metadata, search, TOC and statistics panels, autocomplete.
 
-## Not implemented
+## Fonts and themes
 
-Tables, footnotes, wiki links, math (MathJax) and Mermaid (WKWebView renderers), file and
-image attachments with previews, folding, bidi handling, YAML metadata, callouts, search,
-TOC and statistics panels, autocomplete.
+Themes use the system font by default (`"system"`, `"system-bold"`, `"system-mono"`, `"system-rounded"`,
+`"system-serif"`, `"system-semibold"`, or any PostScript name). Custom fonts can be registered for the process
+with `SFFontLoader.registerFonts(in:)` or by pointing `MDTEXTKIT_FONTS_DIR` at a folder of `.otf` / `.ttf` files;
+the theme's `editor.text font` / `editor.headers.font` / `editor.code.font` then refer to them by PostScript name.
+`SFThemeManager.shared.overrides` lets the host app override theme values (for example `"editor.text size"`).
 
-
-## Ported block features (late 2026-10-12)
-
-- Folding: `<!-- {"fold":true} -->` at the end of a heading or list-item line hides the section behind a "•••" pill
-  (Format › Toggle Fold / Fold All / Unfold All, gutter chevrons on hover, click the pill or ⌘-click a heading marker).
-- Callouts: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]` with Bear's icons and palette-derived colours.
-- Tables: GitHub pipe tables render as a grid with Bear's column fitting; click a cell to edit it in place (Tab / Shift-Tab / arrows move between cells, Esc ends), hover for the ⋮ menu (rows, columns, alignment, copy as Markdown/CSV/HTML). Edits are written back to the note as Markdown.
-- Images: `![alt](relative/path.png)` resolved against the note's folder or the TextBundle assets.
-- Tags (`#tag`) are intentionally not styled (`RuleConfig.hashtags = false`).
-- Samples: `Samples/all-styles.md` (`--file`), `Samples/fold.md` (local only, not tracked).
-
-## 启动方式
+## Run
 
 ```bash
-cd ~/Developer/MDTextKit && ./tools/make_app.sh && open -n dist/BearClone.app --args --size 723x748 --font-size 16 --file "$PWD/Samples/all-styles.md"
+cd ~/Developer/MDTextKit && ./tools/make_app.sh && open -n dist/MDTextKitDemo.app --args --size 723x748 --font-size 16 --file "$PWD/Samples/all-styles.md"
 ```
 
-- `./tools/make_app.sh`：`swift build` 后组装 `dist/BearClone.app`（每次改代码后重新执行）。
-- `--size 723x748`：窗口内容尺寸，与 Bear 的 708pt 文本区 + 15pt 滚动条对应；`--font-size 16`：对应 Bear 设置里的字号；`--file`：打开任意 Markdown 文件（相对路径图片会相对该文件所在目录解析）；`--dark`：Dark Graphite 主题。
-- 直接调试：`swift run BearCloneApp --size 723x748 --font-size 16`（没有 .app 外壳，字体/主题仍从 SFThemeKit 资源加载）。
+- `./tools/make_app.sh`：`swift build` 后组装 `dist/MDTextKitDemo.app`（每次改代码后重新执行；`tools/` 不入库）。
+- `--size WxH`：窗口内容尺寸；`--font-size N`：用户字号，覆盖主题的 `editor.text size`；`--file`：打开任意 Markdown 文件（相对路径图片按该文件所在目录解析）；`--dark`：Dark 主题；`--autosave path`：每次改动写回文件；`--dump-layout`：打印每行 fragment 后退出；`--snapshot out.png [caret]`：离屏渲染后退出。
+- 直接调试：`swift run MDTextKitDemo --size 723x748 --font-size 16`。
 - 测试：`swift test`。
-- 辅助脚本在 `tools/`（不入库）（截图行列像素统计 `rows`/`cols`、拼图 `sidebyside`、Ghidra 导出 `ExportDecomp.java` + `clean.py`、按函数名取汇编 `asmfn.py`）；Bear 的反编译文本在 `reference/decomp/`。
+- `Samples/`（示例笔记）、`tools/`（打包和截图比对脚本）、`reference/`（分析资料）都只在本地，不入库。
