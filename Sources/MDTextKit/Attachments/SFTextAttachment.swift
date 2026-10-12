@@ -219,7 +219,9 @@ open class SFTextAttachmentView: SFTextAttachment {
     public required init?(coder: NSCoder) { super.init(coder: coder) }
 
     open override func drawAttachment(in rect: CGRect) {
-        temporaryImage?.draw(in: rect)
+        // Snapped to the backing grid, or the text inside the image resamples into a blur.
+        let aligned = MainActor.assumeIsolated { NSView.focusView?.backingAlignedRect(rect, options: .alignAllEdgesNearest) } ?? rect
+        temporaryImage?.draw(in: aligned)
     }
 }
 

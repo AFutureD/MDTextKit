@@ -48,6 +48,11 @@ import SFThemeKit
         let all = NSRange(location: 0, length: m.length)
         m.removeAttribute(.link, range: all)
         if row == 0 { m.addFontWeight(NSFont.Weight.semibold.rawValue, in: all) }
+        if row == 0, m.length > 0, let font = m.attribute(.font, at: 0, effectiveRange: nil) as? NSFont, !font.isBold,
+           font.fontName.hasPrefix(".") {
+            // The system family answers no descriptor weight; it has its own semibold.
+            m.addAttribute(.font, value: NSFont.systemFont(ofSize: font.pointSize, weight: .semibold), range: all)
+        }
         if let ec = editorController, m.length > 0 { _ = ec.hideMarkdown(in: NSRange(location: 0, length: m.length), in: m) }
         while let r = m.string.range(of: "<br ?/?>", options: .regularExpression) {
             m.replaceCharacters(in: NSRange(r, in: m.string), with: "\n")
@@ -193,8 +198,11 @@ import SFThemeKit
         let image = NSImage(size: contentSize, flipped: true) { [self] _ in
             let clip = NSBezierPath(roundedRect: CGRect(origin: .zero, size: contentSize), xRadius: cornerRadius, yRadius: cornerRadius)
             clip.addClip()
+            // Cells first, then the lines between columns: a translucent cell colour keeps its own tone.
             borderColor.setFill()
-            NSBezierPath(rect: CGRect(origin: .zero, size: contentSize)).fill()
+            for rect in rects.first ?? [] where rect.maxX < contentSize.width {
+                NSBezierPath(rect: CGRect(x: rect.maxX, y: 0, width: borderWidth, height: contentSize.height)).fill()
+            }
             let storage = NSTextStorage()
             let lm = NSLayoutManager()
             let tc = NSTextContainer(size: .zero)
