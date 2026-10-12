@@ -89,7 +89,7 @@ TOC and statistics panels, autocomplete.
 - Tables: GitHub pipe tables render as a grid with Bear's column fitting; click a cell to edit it in place (Tab / Shift-Tab / arrows move between cells, Esc ends), hover for the ⋮ menu (rows, columns, alignment, copy as Markdown/CSV/HTML). Edits are written back to the note as Markdown.
 - Images: `![alt](relative/path.png)` resolved against the note's folder or the TextBundle assets.
 - Tags (`#tag`) are intentionally not styled (`RuleConfig.hashtags = false`).
-- Samples: `Samples/all-styles.md` (`--file`), `Samples/fold.md`.
+- Samples: `Samples/all-styles.md` (`--file`), `Samples/fold.md` (local only, not tracked).
 
 ## 启动方式
 
