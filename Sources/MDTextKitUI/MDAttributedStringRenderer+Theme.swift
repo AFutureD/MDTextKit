@@ -160,8 +160,8 @@ public extension MDAttributedStringRenderer {
         var backgrounds: [NSColor] = []
         var texts: [NSColor] = []
         for name in ["default", "red", "blue", "green", "yellow", "purple"] {
-            backgrounds.append(tm.currentTheme.color(forKeyPath: "editor.highlighter.\(name).background color") ?? .green)
-            texts.append(tm.currentTheme.color(forKeyPath: "editor.highlighter.\(name).text color") ?? textColor)
+            backgrounds.append(tm.color(forKey: "editor.highlighter.\(name).background color", default: .green))
+            texts.append(tm.color(forKey: "editor.highlighter.\(name).text color", default: textColor))
         }
         highlighterStyler.backgroundColors = backgrounds
         highlighterStyler.textColors = texts

@@ -296,6 +296,13 @@ import SFThemeKit
         self.textView(textView, clickedOn: cell, in: cellFrame, at: charIndex)
     }
 
+    /// A click on link text goes through the same hook as the link icon.
+    public func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
+        guard let url = link as? URL ?? (link as? String).flatMap({ URL(string: $0) }) else { return false }
+        openURL(url)
+        return true
+    }
+
     /// Tasks toggle, fold pills unfold.
     public func didInteract(with attachment: SFTextAttachment, at index: Int) -> Bool {
         if attachment is MDTaskTextAttachment, isEditable {
