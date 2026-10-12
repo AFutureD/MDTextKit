@@ -42,8 +42,9 @@ public final class MDATXHeadingAttachment: SFTextAttachment {
         let p3 = NSBezierPath(roundedRect: NSRect(x: x, y: y3, width: shortest, height: bar), xRadius: radius, yRadius: radius)
         (color ?? .black).setFill()
         p1.fill(); p2.fill(); p3.fill()
+        // The level stands on the bottom bar's baseline, in the room the two short bars leave at the right.
         let number = numberAttributedString(fontSize: unit * 10.0)
-        number.draw(with: NSRect(x: x, y: y1 + bar, width: longest, height: bar + step), options: [])
+        number.draw(with: NSRect(x: x, y: y3 + bar, width: longest, height: bar), options: [])
     }
 
     public func lineWidth(forLineNumber line: Int, level: Int, baseWidth: CGFloat) -> CGFloat {
