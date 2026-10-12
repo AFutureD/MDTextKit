@@ -397,7 +397,10 @@ import SFThemeKit
         let text = md.replacingOccurrences(of: "\n", with: "<br>")
         let ip = tv.indexPath
         guard ip.row < model.rows.count, ip.column < model.rows[ip.row].count else { return }
-        model.update(row: ip.row, column: ip.column, text: NSAttributedString(string: text, attributes: model.separatorAttributes))
+        // Styled like a loaded cell, so the grid hides the markers again once the editor leaves.
+        let styled = cellEditorController.attributedStringRenderer.styledAttributedString(fromString: text)
+        styled.addAttributes(model.separatorAttributes.filter { $0.key == .paragraphStyle }, range: NSRange(location: 0, length: styled.length))
+        model.update(row: ip.row, column: ip.column, text: styled)
     }
 
     private func cellAlignment(_ a: Int) -> NSTextAlignment { [0: .left, 1: .center, 2: .right][a] ?? .natural }
