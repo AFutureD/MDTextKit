@@ -14,7 +14,7 @@ public struct TextBundleInfo: Equatable {
     public var creatorURL: String? = nil
     public var creatorIdentifier: String? = nil
     public var sourceURL: String? = nil
-    /// Every non-standard top-level key (app namespaces such as `net.shinyfrog.bear`).
+    /// Every non-standard top-level key (app namespaces such as `com.example.app`).
     public var extra: [String: Any] = [:]
 
     public init() {}

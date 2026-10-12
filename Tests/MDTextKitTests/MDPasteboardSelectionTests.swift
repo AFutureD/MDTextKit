@@ -74,8 +74,8 @@ final class MDPasteboardSelectionTests: XCTestCase {
         rich.addAttribute(.font, value: NSFont.systemFont(ofSize: 26), range: NSRange(location: 0, length: 5))
         rich.addAttribute(.font, value: NSFont.systemFont(ofSize: 13), range: NSRange(location: 6, length: 15))
         rich.addAttribute(.font, value: NSFont.boldSystemFont(ofSize: 13), range: NSRange(location: 12, length: 4))
-        rich.addAttribute(.link, value: URL(string: "https://bear.app")!, range: NSRange(location: 17, length: 4))
+        rich.addAttribute(.link, value: URL(string: "https://example.com")!, range: NSRange(location: 17, length: 4))
         let md = MDRTFImporter.markdown(from: rich)
-        XCTAssertEqual(md, "# Title\nplain **bold** [link](https://bear.app)\n")
+        XCTAssertEqual(md, "# Title\nplain **bold** [link](https://example.com)\n")
     }
 }

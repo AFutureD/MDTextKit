@@ -17,7 +17,7 @@ final class MDLayoutDumpTests: XCTestCase {
         let md = """
         Inline `code spans` and ==highlighted text== work too, so does \\*escaping\\*.
 
-        > A quote with a [link](https://bear.app) and https://autolink.example/path
+        > A quote with a [link](https://example.com) and https://autolink.example/path
         > > nested quote level two
 
         ---
