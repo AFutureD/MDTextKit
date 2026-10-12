@@ -6,7 +6,7 @@ import PolarMark
 //   NSMutableAttributedString(Fonts) / NSString(Ranges) / NSTextAttachment(AttachmentKind)
 //   NSFont(Metrics) / NSFont(FontVariants) / NSMutableParagraphStyle(CenteredLineHeight)
 
-// MARK: - Attribute names MDTextKit adds (Bear: MD*AttributeName / @"MD..." literals)
+// MARK: - Attribute names MDTextKit adds
 
 public extension NSAttributedString.Key {
     static let mdOriginalAttributes = NSAttributedString.Key("MDOriginalAttributes")
@@ -23,7 +23,7 @@ public extension NSAttributedString.Key {
     static let mdCalloutColors = NSAttributedString.Key("MDCalloutColors")
     static let mdMermaidCode = NSAttributedString.Key("MDMermaidCode")
     static let mdMermaidCodeContent = NSAttributedString.Key("MDMermaidCodeContent")
-    /// Bear adds then immediately removes @"TMP" to force an attribute-change notification for attachments.
+    /// Adds then immediately removes @"TMP" to force an attribute-change notification for attachments.
     static let mdTMP = NSAttributedString.Key("TMP")
 }
 
@@ -32,7 +32,6 @@ public let NSNotFoundRange = NSRange(location: NSNotFound, length: 0)
 // MARK: - NSAttributedString(Attachments)
 
 public extension NSAttributedString {
-    /// Bear: `stringByExpandingTextAttachments`
     var stringByExpandingTextAttachments: String {
         stringByExpandingTextAttachments(in: NSRange(location: 0, length: length))
     }
@@ -41,7 +40,7 @@ public extension NSAttributedString {
         stringByExpandingTextAttachments(in: range, selectionToOffset: nil)
     }
 
-    /// Bear: `stringByExpandingTextAttachmentsInRange:selectionToOffset:` — replaces every
+    /// Replaces every
     /// SFTextAttachment with its represented markdown and shifts `selection` accordingly.
     func stringByExpandingTextAttachments(in range: NSRange, selectionToOffset selection: UnsafeMutablePointer<NSRange>?) -> String {
         let result = NSMutableString(capacity: range.length)
@@ -62,7 +61,7 @@ public extension NSAttributedString {
         return result as String
     }
 
-    /// Bear: `baselineOffsetForAttachmentAtIndex:attachmentHeight:` — centers an attachment on the
+    /// Centers an attachment on the
     /// font's cap height: (capHeight - height) / 2.
     func baselineOffsetForAttachment(at index: Int, attachmentHeight height: CGFloat) -> CGFloat {
         guard length > 0 else { return 0 }
@@ -71,12 +70,11 @@ public extension NSAttributedString {
         return (font.capHeight - height) / 2
     }
 
-    /// Bear: `rangeOfTextAttachment:`
     func range(ofTextAttachment attachment: NSTextAttachment) -> NSRange {
         range(ofTextAttachment: attachment, foldRange: nil)
     }
 
-    /// Bear: `rangeOfTextAttachment:foldRange:` — also looks inside fold attachments.
+    /// Also looks inside fold attachments.
     func range(ofTextAttachment attachment: NSTextAttachment, foldRange: UnsafeMutablePointer<NSRange>?) -> NSRange {
         foldRange?.pointee = NSNotFoundRange
         var result = NSNotFoundRange
@@ -97,13 +95,11 @@ public extension NSAttributedString {
         return result
     }
 
-    /// Bear: `textAttachmentAtIndex:`
     func textAttachment(at index: Int) -> NSTextAttachment? {
         guard index < length else { return nil }
         return attribute(.attachment, at: index, effectiveRange: nil) as? NSTextAttachment
     }
 
-    /// Bear: `containsFileBackedAttachmentsInRange:`
     func containsFileBackedAttachments(in range: NSRange) -> Bool {
         var found = false
         enumerateFileBackedAttachment(in: range, options: []) { _, _, stop in
@@ -113,7 +109,7 @@ public extension NSAttributedString {
         return found
     }
 
-    /// Bear: `enumerateFileBackedAttachmentInRange:options:usingBlock:` (descends into folds).
+    /// `enumerateFileBackedAttachmentInRange:options:usingBlock:` (descends into folds).
     func enumerateFileBackedAttachment(in range: NSRange, options: NSAttributedString.EnumerationOptions,
                                        using block: (SFTextAttachmentFileBackedView, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) {
         enumerateAttribute(.attachment, in: range, options: []) { value, r, stop in
@@ -135,25 +131,22 @@ public extension NSAttributedString {
 // MARK: - NSAttributedString(Spacers)
 
 public extension NSAttributedString {
-    /// Bear: `hasSpacerAtIndex:`
     func hasSpacer(at index: Int) -> Bool {
         guard index >= 0, index < length else { return false }
         return attribute(.mdSpacer, at: index, effectiveRange: nil) != nil
     }
 
-    /// Bear: `hasOpeningSpacerAtIndex:`
     func hasOpeningSpacer(at index: Int) -> Bool {
         guard index >= 0, index < length, let v = attribute(.mdSpacer, at: index, effectiveRange: nil) as? NSNumber else { return false }
         return v.intValue == PMKMarkerValue.open.rawValue
     }
 
-    /// Bear: `hasClosingSpacerAtIndex:`
     func hasClosingSpacer(at index: Int) -> Bool {
         guard index >= 0, index < length, let v = attribute(.mdSpacer, at: index, effectiveRange: nil) as? NSNumber else { return false }
         return v.intValue == PMKMarkerValue.close.rawValue
     }
 
-    /// Bear: `spacersAdjustedSelectionForProposedSelection:currentSelection:` — keeps the caret from
+    /// Keeps the caret from
     /// landing between an attachment and its boundary spacers.
     func spacersAdjustedSelection(forProposedSelection proposed: NSRange, currentSelection current: NSRange) -> NSRange {
         var loc = proposed.location
@@ -218,12 +211,11 @@ public extension NSAttributedString {
 // MARK: - NSAttributedString(Ranges)
 
 public extension NSAttributedString {
-    /// Bear: `+offsetSelectionRange:forReplacementRange:replacementAttributedString:`
     static func offsetSelectionRange(_ selection: NSRange, forReplacementRange replacement: NSRange, replacementAttributedString s: NSAttributedString) -> NSRange {
         offsetSelectionRange(selection, forReplacementRange: replacement, replacementLength: s.length)
     }
 
-    /// Bear: `+offsetSelectionRange:forReplacementRange:replacementLenght:` (sic).
+    /// `+offsetSelectionRange:forReplacementRange:replacementLenght:` (sic).
     static func offsetSelectionRange(_ selection: NSRange, forReplacementRange rep: NSRange, replacementLength newLen: Int) -> NSRange {
         var loc = selection.location
         let len = selection.length
@@ -252,7 +244,6 @@ public extension NSAttributedString {
         return NSRange(location: loc, length: outLen)
     }
 
-    /// Bear: `rangeByExtendingRange:toIncludeAttribute:`
     func rangeByExtending(_ range: NSRange, toIncludeAttribute key: NSAttributedString.Key) -> NSRange {
         guard range.length != 0, length > 0 else { return range }
         var out = range
@@ -265,7 +256,7 @@ public extension NSAttributedString {
         return out
     }
 
-    /// Bear: `stringRangeFromAttributedStringRange:` — converts a range in this (attachment-bearing)
+    /// Converts a range in this (attachment-bearing)
     /// string to the markdown string's coordinates.
     func stringRange(fromAttributedStringRange range: NSRange) -> NSRange {
         var before = 0
@@ -279,12 +270,10 @@ public extension NSAttributedString {
         return NSRange(location: range.location + before, length: range.length + inside)
     }
 
-    /// Bear: `attributedStringRangeFromStringRange:`
     func attributedStringRange(fromStringRange range: NSRange) -> NSRange {
         MDStringToAttributedStringIndexMap.attributedStringRange(forStringRange: range, in: self)
     }
 
-    /// Bear: `offsetSelection:byReplacingTextAttachmentInRange:`
     func offsetSelection(_ selection: NSRange, byReplacingTextAttachmentIn range: NSRange) -> NSRange {
         var sel = selection
         enumerateAttribute(.attachment, in: range, options: .reverse) { value, r, _ in
@@ -298,7 +287,7 @@ public extension NSAttributedString {
 // MARK: - NSAttributedString(TemporaryAttributes)
 
 public extension NSAttributedString {
-    /// Bear: `nonTemporaryAttributesAtIndex:` — the attributes stashed by `addTemporaryAttribute`.
+    /// The attributes stashed by `addTemporaryAttribute`.
     func nonTemporaryAttributes(at index: Int) -> [NSAttributedString.Key: Any]? {
         guard index < length else { return nil }
         return attribute(.mdOriginalAttributes, at: index, effectiveRange: nil) as? [NSAttributedString.Key: Any]
@@ -306,7 +295,7 @@ public extension NSAttributedString {
 }
 
 public extension NSMutableAttributedString {
-    /// Bear: `removeTemporaryAttributesInRange:` — restores the stashed attributes. Returns YES when something changed.
+    /// Restores the stashed attributes. Returns YES when something changed.
     @discardableResult
     func removeTemporaryAttributes(in range: NSRange) -> Bool {
         var changed = false
@@ -321,7 +310,7 @@ public extension NSMutableAttributedString {
         return changed
     }
 
-    /// Bear: `addTemporaryAttribute:value:inRange:` — stashes the current value of `key` under
+    /// Stashes the current value of `key` under
     /// `MDOriginalAttributes` (only where the key currently has a value and is not stashed yet),
     /// then sets (or, for nil, removes) the attribute.
     func addTemporaryAttribute(_ key: NSAttributedString.Key, value: Any?, in range: NSRange) {
@@ -350,7 +339,7 @@ public extension NSAttributedString {
         return attribute(.font, at: index, effectiveRange: nil) as? NSFont
     }
 
-    /// Bear: `nonHiddenFontAtIndex:` — the font before the hider replaced it.
+    /// The font before the hider replaced it.
     func nonHiddenFont(at index: Int) -> NSFont? {
         (nonTemporaryAttributes(at: index)?[.font] as? NSFont) ?? font(at: index)
     }
@@ -365,7 +354,7 @@ public extension NSAttributedString {
         return attribute(.foregroundColor, at: index, effectiveRange: nil) as? NSColor
     }
 
-    /// Bear: `backgroundColorAtIndex:` — callout colors win over the highlighter background.
+    /// Callout colors win over the highlighter background.
     func backgroundColor(at index: Int) -> NSColor? {
         guard index < length else { return nil }
         let quote = extendRangeToFullyContainBlockquote(NSRange(location: index, length: 1))
@@ -383,7 +372,6 @@ public extension NSAttributedString {
 // MARK: - NSMutableAttributedString(Fonts)
 
 public extension NSMutableAttributedString {
-    /// Bear: `addFontTraits:inRange:`
     func addFontTraits(_ traits: NSFontDescriptor.SymbolicTraits, in range: NSRange) {
         enumerateAttribute(.font, in: range, options: []) { value, r, _ in
             guard let f = value as? NSFont, let v = f.fontVariant(ofSize: f.pointSize, byAddingTraits: traits) else { return }
@@ -391,7 +379,6 @@ public extension NSMutableAttributedString {
         }
     }
 
-    /// Bear: `addFontWeight:inRange:`
     func addFontWeight(_ weight: CGFloat, in range: NSRange) {
         enumerateAttribute(.font, in: range, options: []) { value, r, _ in
             guard let f = value as? NSFont, let v = f.fontVariant(ofSize: f.pointSize, weight: weight) else { return }
@@ -403,7 +390,7 @@ public extension NSMutableAttributedString {
 // MARK: - NSString(Ranges)
 
 public extension NSString {
-    /// Bear: `+convertSelectionRangeFromSelection:toSubstringRange:` — selection expressed relative to a substring.
+    /// Selection expressed relative to a substring.
     static func convertSelectionRange(fromSelection sel: NSRange, toSubstringRange sub: NSRange) -> NSRange {
         if sel.length == 0 {
             var loc = NSNotFound
@@ -428,7 +415,7 @@ public extension NSString {
         return paragraphRange(for: NSRange(location: NSMaxRange(p), length: 1))
     }
 
-    /// Bear: `rangeByTrimmingCharactersInSet:fromRange:` — NSNotFound location when nothing remains.
+    /// NSNotFound location when nothing remains.
     func rangeByTrimmingCharacters(in set: CharacterSet, from range: NSRange) -> NSRange {
         var loc = range.location
         var len = range.length
@@ -490,13 +477,13 @@ public extension NSTextAttachment {
 // MARK: - NSFont(Metrics) / NSFont(FontVariants)
 
 public extension NSFont {
-    /// Bear: `+basePointSizeForFontSize:` = floor(size * 0.05). Used as the stroke unit for markers.
-    /// Bear: `+[NSFont(Metrics) basePointSizeForFontSize:]` — `roundsd $0xA` in the binary, i.e. ceil(size * 0.05).
+    /// `+basePointSizeForFontSize:` = floor(size * 0.05). Used as the stroke unit for markers.
+    /// `roundsd $0xA` in the binary, i.e. ceil(size * 0.05).
     static func basePointSize(forFontSize size: CGFloat) -> CGFloat { ceil(size * 0.05) }
 
     var basePointSize: CGFloat { NSFont.basePointSize(forFontSize: pointSize) }
 
-    /// Bear: `calculatedLineHeight` = ascent + descent + leading from CoreText (UI font variant for the system family).
+    /// `calculatedLineHeight` = ascent + descent + leading from CoreText (UI font variant for the system family).
     var calculatedLineHeight: CGFloat {
         let ct: CTFont
         if familyName == NSFont.systemFont(ofSize: 10).familyName {
@@ -507,13 +494,13 @@ public extension NSFont {
         return CTFontGetAscent(ct) + CTFontGetDescent(ct) + CTFontGetLeading(ct)
     }
 
-    /// Bear: `fontVariantOfSize:` — same face at another size.
+    /// Same face at another size.
     func fontVariant(ofSize size: CGFloat) -> NSFont? {
         fontVariant(ofSize: size, byAddingTraits: nil)
     }
 
-    /// Bear: `fontVariantOfSize:byAddingTraits:` — rebuilds the font from family + symbolic traits
-    /// so bold/italic come from the real family members. `nil` traits (Bear: -1) keeps the exact face.
+    /// Rebuilds the font from family + symbolic traits
+    /// so bold/italic come from the real family members. `nil` traits keeps the exact face.
     func fontVariant(ofSize size: CGFloat, byAddingTraits traits: NSFontDescriptor.SymbolicTraits?) -> NSFont? {
         let descriptor = fontDescriptor
         var attrs: [NSFontDescriptor.AttributeName: Any] = [:]
@@ -542,7 +529,6 @@ public extension NSFont {
         return NSFont(descriptor: descriptor, size: size)
     }
 
-    /// Bear: `fontVariantOfSize:weight:`
     func fontVariant(ofSize size: CGFloat, weight: CGFloat) -> NSFont? {
         var attrs: [NSFontDescriptor.AttributeName: Any] = [:]
         attrs[.family] = familyName
@@ -555,16 +541,16 @@ public extension NSFont {
 // MARK: - NSMutableParagraphStyle(CenteredLineHeight)
 
 public extension NSMutableParagraphStyle {
-    /// Bear: `setCenteredLineHeightMultiplier:forFont:` — minimumLineHeight = max(floor(mult * pointSize),
+    /// MinimumLineHeight = max(floor(mult * pointSize),
     /// font.calculatedLineHeight); lineSpacing = floor(lineSpacingForLineHeight(minimumLineHeight, font)).
     func setCenteredLineHeightMultiplier(_ multiplier: CGFloat, for font: NSFont) {
-        // Bear (x86 `roundsd $0xB` after adding copysign(0.5, x)): round half away from zero, not floor.
+        // Round half away from zero, not floor.
         let target = (multiplier * font.pointSize).rounded(.toNearestOrAwayFromZero)
         minimumLineHeight = max(target, font.calculatedLineHeight)
         lineSpacing = lineSpacing(forLineHeight: minimumLineHeight, font: font).rounded(.toNearestOrAwayFromZero)
     }
 
-    /// Bear: `lineSpacingForLineHeight:font:` = lineHeight − (ascender + |descender| + leading)
+    /// `lineSpacingForLineHeight:font:` = lineHeight − (ascender + |descender| + leading)
     /// (x86: `andpd` clears the sign of `descender` before the additions).
     func lineSpacing(forLineHeight lineHeight: CGFloat, font: NSFont) -> CGFloat {
         lineHeight - (font.ascender + abs(font.descender) + font.leading)

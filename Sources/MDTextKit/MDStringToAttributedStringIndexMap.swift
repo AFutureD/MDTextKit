@@ -1,6 +1,6 @@
 import AppKit
 
-/// Bear: `MDStringToAttributedStringIndexMap`. Maps indexes of the plain markdown
+/// `MDStringToAttributedStringIndexMap`. Maps indexes of the plain markdown
 /// string to indexes of the attributed string in which SFTextAttachments replace
 /// runs of markdown characters (one attachment character stands for N markdown
 /// characters, and zero-length "spacer" attachments stand for none).
@@ -18,9 +18,8 @@ public final class MDStringToAttributedStringIndexMap: NSObject {
         super.description + indexes.map { " " + NSStringFromRange($0) }.joined()
     }
 
-    // MARK: Enumeration primitives (Bear: class methods)
+    // MARK: Enumeration primitives
 
-    /// Bear: `+enumerateStringAndAttributedStringIndexesInAttributedString:usingBlock:`
     /// Calls `block(stringIndex, attributedIndex)` once per markdown character.
     public static func enumerateStringAndAttributedStringIndexes(in s: NSAttributedString,
                                                                  using block: (Int, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {
@@ -60,7 +59,6 @@ public final class MDStringToAttributedStringIndexMap: NSObject {
         }
     }
 
-    /// Bear: `+enumerateStringAndAttributedStringRangesInAttributedString:usingBlock:`
     /// Calls `block(stringIndex, 1, attributedRange)` once per markdown character.
     public static func enumerateStringAndAttributedStringRanges(in s: NSAttributedString,
                                                                 using block: (Int, Int, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) {
@@ -103,7 +101,7 @@ public final class MDStringToAttributedStringIndexMap: NSObject {
         }
     }
 
-    /// Bear: `+attributedStringRangeForStringRange:inAttributedString:` — one-shot conversion
+    /// One-shot conversion
     /// without building the index table.
     public static func attributedStringRange(forStringRange range: NSRange, in s: NSAttributedString) -> NSRange {
         if s.length == 0 && range.location != 0 { return NSNotFoundRange }
@@ -129,7 +127,7 @@ public final class MDStringToAttributedStringIndexMap: NSObject {
         var loc = 0
         var len = 0
         func hashtagAdjust() {
-            // Bear keeps a short (≤ 2 chars) hashtag icon attachment in front of the tag.
+            // A short (≤ 2 chars) hashtag icon attachment sits in front of the tag.
             if start != 0 && start != NSNotFound && start - 1 < s.length {
                 let hr = s.longestRange(forAttribute: .pmkHashtag, at: start - 1)
                 let h = (hr.location == NSNotFound || hr.length > 2) ? 0 : hr.length
@@ -171,7 +169,7 @@ public final class MDStringToAttributedStringIndexMap: NSObject {
         return NSRange(location: loc, length: max(0, len))
     }
 
-    // MARK: Instance API (Bear: buildRangeForStringRange:, attributedStringRangeForStringRange:)
+    // MARK: Instance API
 
     public func buildRange(forStringRange range: NSRange) {
         guard indexes.isEmpty, let s = attributedString else { return }

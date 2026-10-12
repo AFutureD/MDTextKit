@@ -1,6 +1,6 @@
 import Foundation
 
-/// Bear: `PMKListInfo` (PolarMark). Stored as the value of the `PMKListItem`
+/// `PMKListInfo` (PolarMark). Stored as the value of the `PMKListItem`
 /// attribute. Decompiled semantics:
 ///   listType:   1 = unordered, 2 = ordered, 3 = blockquote
 ///   listSubType: 4 = "1." delimiter, 5 = "1)" delimiter, 6 = callout
@@ -30,7 +30,6 @@ public final class PMKListInfo: NSObject, NSCopying, NSSecureCoding {
         self.itemIndex = itemIndex
     }
 
-    /// Bear: `+[PMKListInfo listInfoWithListType:subType:taskType:level:itemIndex:]`
     public static func listInfo(listType: Int, subType: Int, taskType: Int, level: Int, itemIndex: Int) -> PMKListInfo {
         PMKListInfo(listType: listType, subType: subType, taskType: taskType, level: level, itemIndex: itemIndex)
     }
@@ -60,10 +59,10 @@ public final class PMKListInfo: NSObject, NSCopying, NSSecureCoding {
     public var isTaskList: Bool { taskType != 0 }
     public var isBlockQuote: Bool { listType == 3 }
     public var isCallout: Bool { listSubType == 6 }
-    /// Bear: callout kind (key into MDBlockQuoteTextStyler.calloutColors); 0 until callouts are parsed.
+    /// Callout kind (key into MDBlockQuoteTextStyler.calloutColors); 0 until callouts are parsed.
     public var calloutType: Int = 0
 
-    /// Bear: `orderedListItemNumberDelimiter` — "." for subtype 4, ")" for subtype 5.
+    /// "." for subtype 4, ")" for subtype 5.
     public var orderedListItemNumberDelimiter: String? {
         if listSubType == 4 { return "." }
         if listSubType == 5 { return ")" }

@@ -4,7 +4,7 @@ import AppKit
 @testable import MDTextKitUI
 @testable import SFThemeKit
 
-/// Bear semantics: programmatic changes (AST operations, task toggles, folding) are undoable through the
+/// Programmatic changes (AST operations, task toggles, folding) are undoable through the
 /// editor's own undo manager; undo restores the previous attributed text and selection.
 final class MDUndoTests: XCTestCase {
     private func makeEditor(_ md: String) -> (MDEditorViewController, NSWindow) {

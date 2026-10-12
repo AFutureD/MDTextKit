@@ -3,9 +3,9 @@ import MDTextKit
 import PolarMark
 import SFThemeKit
 
-/// Bear: `TableAttachmentViewController` + `TableAttachmentViewLayout` + `TableAttachmentView` — builds the cell
+/// `TableAttachmentViewController` + `TableAttachmentViewLayout` + `TableAttachmentView` — builds the cell
 /// model from the table markdown, fits the column widths, and renders the grid into the attachment image.
-/// (Bear edits cells with live text views; this port renders the grid only.)
+/// (The grid itself is an image; cells are edited through an overlaid text view.)
 public final class MDTableAttachmentRenderer {
     public struct Cell { public var text: NSAttributedString; public var alignment: Int }
 
@@ -17,7 +17,7 @@ public final class MDTableAttachmentRenderer {
 
     public init() {}
 
-    // MARK: Model (Bear: TableAttachmentDataModel)
+    // MARK: Model
 
     public func model(from src: NSAttributedString) -> (rows: [[Cell]], columns: Int) {
         var rows: [[Cell]] = []
@@ -41,7 +41,7 @@ public final class MDTableAttachmentRenderer {
         return (rows, columns)
     }
 
-    /// Bear: `diplayAttributedString(for:at:in:)` — attachments copied, links stripped, header semibold,
+    /// Attachments copied, links stripped, header semibold,
     /// markdown hidden, `<br>` → newline, alignment applied.
     public func displayString(for cell: Cell, row: Int, renderer: MDAttributedStringRenderer) -> NSAttributedString {
         let m = NSMutableAttributedString(attributedString: cell.text)
@@ -61,7 +61,7 @@ public final class MDTableAttachmentRenderer {
         return m
     }
 
-    // MARK: Layout (Bear: TableAttachmentViewLayout.buildCellsRects)
+    // MARK: Layout
 
     public struct Layout {
         public var rects: [[CGRect]]
@@ -85,7 +85,7 @@ public final class MDTableAttachmentRenderer {
         att.attachmentSize = layout.contentSize
     }
 
-    /// Bear: `TableAttachmentViewLayout.buildCellsRects` — column fitting and row heights.
+    /// Column fitting and row heights.
     public func layout(rows: [[Cell]], columns: Int) -> Layout? {
         guard let renderer = editorController?.attributedStringRenderer else { return nil }
         guard columns > 0, !rows.isEmpty else { return nil }
@@ -186,7 +186,7 @@ public final class MDTableAttachmentRenderer {
         return Layout(rects: rects, widths: widths, heights: heights, contentSize: contentSize, display: display, pad: pad, borderWidth: borderWidth, cornerRadius: cornerRadius)
     }
 
-    /// Bear: `TableAttachmentView.tableImage(for:)` / `drawTable` plus the layer border.
+    /// `TableAttachmentView.tableImage(for:)` / `drawTable` plus the layer border.
     public func image(for layout: Layout) -> NSImage {
         let contentSize = layout.contentSize, rects = layout.rects, display = layout.display
         let pad = layout.pad, borderWidth = layout.borderWidth, cornerRadius = layout.cornerRadius
@@ -222,7 +222,7 @@ public final class MDTableAttachmentRenderer {
         return image
     }
 
-    /// Bear theme keys (TableAttachmentCoreViewController.styleObject).
+    /// Theme keys used by the table.
     public func style(with tm: SFThemeManager) {
         rowColor = tm.color(forKey: "editor.table.cell background color", default: .white)
         alternateRowColor = tm.color(forKey: "editor.table.cell alternate background color", default: .white)

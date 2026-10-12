@@ -1,6 +1,6 @@
 import Foundation
 
-/// Bear: `Ice::InlineParser` + `Ice::InlineRuleMap`.
+/// `Ice::InlineParser` + `Ice::InlineRuleMap`.
 /// Produces flat inline child nodes (strong, emphasis, code, link, ...) for a
 /// block. Nesting is expressed by overlapping ranges, which is all the
 /// attributed-string annotation needs.

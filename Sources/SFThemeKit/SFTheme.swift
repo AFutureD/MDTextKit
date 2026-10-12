@@ -1,7 +1,7 @@
 import AppKit
 
-/// Bear: `SFTheme` — a JSON document where string values may reference other
-/// values with `$a.b.c` (keys may contain spaces, exactly like Bear's .theme files).
+/// A JSON document where string values may reference other
+/// values with `$a.b.c` (keys may contain spaces).
 public final class SFTheme {
     public let name: String
     public private(set) var root: [String: Any]
@@ -30,7 +30,7 @@ public final class SFTheme {
         return cur
     }
 
-    /// Bear: `-[SFTheme themeValueForKeyPath:]` with `$ref` resolution.
+    /// `-[SFTheme themeValueForKeyPath:]` with `$ref` resolution.
     public func value(forKeyPath path: String) -> Any? {
         if let c = cache[path] { return c }
         var seen: Set<String> = []
@@ -59,7 +59,7 @@ public final class SFTheme {
         return nil
     }
 
-    /// Bear: `SFColorHexValueTransformer`. Accepts #RGB, #RRGGBB, #RRGGBBAA.
+    /// `SFColorHexValueTransformer`. Accepts #RGB, #RRGGBB, #RRGGBBAA.
     public static func color(fromHex hex: String) -> NSColor? {
         var s = hex.trimmingCharacters(in: .whitespaces)
         if s.hasPrefix("#") { s.removeFirst() }

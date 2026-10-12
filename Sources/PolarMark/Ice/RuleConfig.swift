@@ -1,6 +1,6 @@
 import Foundation
 
-/// Bear: `Ice::RuleConfig` / `Ice::RuleMap`. Lets callers disable rules
+/// `Ice::RuleConfig` / `Ice::RuleMap`. Lets callers disable rules
 /// (`-[PMKAST disableRule:]`, `+[PMKAST setUsesSimplifiedRuleSet:]`).
 public struct RuleConfig: Equatable {
     public var strong = true
@@ -11,7 +11,7 @@ public struct RuleConfig: Equatable {
     public var code = true
     public var links = true
     public var images = true
-    public var hashtags = false   // tag support disabled by request (Bear default: true)
+    public var hashtags = false   // tag support disabled by request
     public var autolinks = true
     public var escapes = true
     public var hardLineBreaks = true
@@ -20,7 +20,7 @@ public struct RuleConfig: Equatable {
 
     public static let standard = RuleConfig()
 
-    /// Bear's "simplified rule set" (used for titles / previews): inline only, no tags.
+    /// The "simplified rule set" (used for titles / previews): inline only, no tags.
     public static var simplified: RuleConfig {
         var r = RuleConfig()
         r.hashtags = false

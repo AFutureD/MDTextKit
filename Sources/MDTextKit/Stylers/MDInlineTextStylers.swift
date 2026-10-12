@@ -3,7 +3,7 @@ import PolarMark
 
 // Inline stylers, each a faithful port of the decompiled MDTextKit class of the same name.
 
-/// Bear: `MDStrongTextStyler` — bold trait on content + markers, marker colour on the markers.
+/// Bold trait on content + markers, marker colour on the markers.
 public final class MDStrongTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         s.enumerateStrong(in: range, options: []) { content, opening, closing, _ in
@@ -18,7 +18,7 @@ public final class MDStrongTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDEmphasisTextStyler` — italic variant per font run, skew fallback, marker colour.
+/// Italic variant per font run, skew fallback, marker colour.
 public final class MDEmphasisTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         s.enumerateEmphasis(in: range, options: []) { content, opening, closing, _ in
@@ -34,7 +34,6 @@ public final class MDEmphasisTextStyler: MDBaseTextStyler {
         }
     }
 
-    /// Bear: `italicFontForFont:`
     public func italicFont(for font: NSFont) -> NSFont {
         if let cached = cache.object(forKey: font) as? NSFont { return cached }
         let italic = font.fontVariant(ofSize: font.pointSize, byAddingTraits: .italic) ?? font
@@ -43,7 +42,6 @@ public final class MDEmphasisTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDStrikethroughTextStyler`
 public final class MDStrikethroughTextStyler: MDBaseTextStyler {
     public var textColor: NSColor = .black
 
@@ -58,7 +56,6 @@ public final class MDStrikethroughTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDUnderlineTextStyler`
 public final class MDUnderlineTextStyler: MDBaseTextStyler {
     public var underlineColor: NSColor = .black
 
@@ -73,7 +70,7 @@ public final class MDUnderlineTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDCodeTextStyler` — code font on the content, text attributes on the whole span, boundary spacers.
+/// Code font on the content, text attributes on the whole span, boundary spacers.
 public final class MDCodeTextStyler: MDBaseTextStyler {
     public var textAttributes: [NSAttributedString.Key: Any] = [:]
     public var codeFont: NSFont = .systemFont(ofSize: 14)
@@ -96,7 +93,7 @@ public final class MDCodeTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDLinkTextStyler` — `[label](url)`: label becomes a clickable link, the URL part becomes an icon attachment.
+/// `[label](url)`: label becomes a clickable link, the URL part becomes an icon attachment.
 public final class MDLinkTextStyler: MDBaseTextStyler {
     public var linkColor: NSColor = .black
     public var attachmentColor: NSColor?
@@ -116,7 +113,7 @@ public final class MDLinkTextStyler: MDBaseTextStyler {
             if let valid = NSURL.validURL(fromString: urlString) {
                 s.addAttribute(.link, value: valid, range: label)
                 s.addAttribute(.foregroundColor, value: self.linkColor, range: label)
-                // Bear passes an NSNumber constant here; the rendered result has no underline, so it is 0.
+                // The rendered result has no underline, so this is 0.
                 if s.attribute(.underlineStyle, at: label.location, effectiveRange: nil) == nil {
                     s.addAttribute(.underlineStyle, value: NSNumber(value: 0), range: label)
                 }
@@ -156,9 +153,9 @@ public final class MDLinkTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDImageTextStyler` — `![alt](path)` becomes an inline image attachment.
+/// `![alt](path)` becomes an inline image attachment.
 public final class MDImageTextStyler: MDBaseTextStyler {
-    /// Host hook (Bear: the app assigns the attachment's file wrapper): markdown path → file URL.
+    /// Host hook: markdown path → file URL.
     public var fileResolver: ((String) -> URL?)?
 
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
@@ -186,7 +183,7 @@ public final class MDImageTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDHashtagTextStyler` — tag pill: background colour, text/hash colours, optional link and icon, spacers.
+/// Tag pill: background colour, text/hash colours, optional link and icon, spacers.
 public final class MDHashtagTextStyler: MDBaseTextStyler {
     public var backgroundColor: NSColor = .black
     public var textColor: NSColor = .black
@@ -212,7 +209,7 @@ public final class MDHashtagTextStyler: MDBaseTextStyler {
             }
             let font = s.font(at: opening.location) ?? NSFont.systemFont(ofSize: self.baseFontSize)
             let spacer = MDTagTextAttachment()
-            // Bear: round(pointSize / 1.5) with an icon, round(pointSize * 0.5) without (frinta = round half away).
+            // Round(pointSize / 1.5) with an icon, round(pointSize * 0.5) without (frinta = round half away).
             let width: CGFloat = self.tagIconBlock == nil ? (font.pointSize * 0.5).rounded(.toNearestOrAwayFromZero) : (font.pointSize / 1.5).rounded(.toNearestOrAwayFromZero)
             spacer.attachmentSize = CGSize(width: width, height: self.baseFontSize)
             spacer.updateAttachmentImage()
@@ -239,7 +236,7 @@ public final class MDHashtagTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDAutoLinkTextStyler` — bare URLs and e-mails become links.
+/// Bare URLs and e-mails become links.
 public final class MDAutoLinkTextStyler: MDBaseTextStyler {
     public var linkColor: NSColor = .black
     public var attachmentColor: NSColor?
@@ -273,7 +270,7 @@ public final class MDAutoLinkTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDHighlighterTextStyler` — `==text==` with six colour slots.
+/// `==text==` with six colour slots.
 public final class MDHighlighterTextStyler: MDBaseTextStyler {
     public var textColors: [NSColor] = Array(repeating: .black, count: 6)
     public var backgroundColors: [NSColor] = Array(repeating: .green, count: 6)
@@ -322,7 +319,6 @@ public final class MDHighlighterTextStyler: MDBaseTextStyler {
         }
     }
 
-    /// Bear: `attachmentForRange:color:inAttributedString:`
     public func attachment(forRange range: NSRange, color: NSColor, in s: NSAttributedString) -> MDHighlighterTextAttachment {
         let a = MDHighlighterTextAttachment(representedAttributedText: s.attributedSubstring(from: range))
         let ps = s.font(at: min(range.location, max(0, s.length - 1)))?.pointSize ?? baseFontSize
@@ -337,7 +333,7 @@ public final class MDHighlighterTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDEscapeTextStyler` — the backslash gets the marker colour and never becomes a link.
+/// The backslash gets the marker colour and never becomes a link.
 public final class MDEscapeTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         s.enumerateEscape(in: range, options: []) { run, _ in

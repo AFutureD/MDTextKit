@@ -1,7 +1,7 @@
 import AppKit
 import PolarMark
 
-/// Bear: `SFTextAttachment : NSTextAttachment`. Every visual element that replaces
+/// `SFTextAttachment : NSTextAttachment`. Every visual element that replaces
 /// markdown text (heading hashes, bullets, checkboxes, rules, ...) is one of these.
 /// `representedAttributedText` is the exact markdown it stands for, so the
 /// markdown can always be rebuilt from the attributed string.
@@ -24,7 +24,6 @@ open class SFTextAttachment: NSTextAttachment {
         self.init(representedAttributedText: nil)
     }
 
-    /// Bear: `initWithRepresentedAttributedText:`
     public required init(representedAttributedText: NSAttributedString?) {
         super.init(data: nil, ofType: nil)
         self.representedAttributedText = representedAttributedText ?? NSAttributedString(string: "")
@@ -42,10 +41,10 @@ open class SFTextAttachment: NSTextAttachment {
         attachmentCell = SFTextAttachmentCell()
     }
 
-    /// Bear: `representedText` — the markdown behind this attachment (expanding nested attachments).
+    /// The markdown behind this attachment (expanding nested attachments).
     public var representedText: String { representedAttributedText.stringByExpandingTextAttachments }
 
-    /// Bear: `updateAttachmentImage` — subclasses rebuild cached images here.
+    /// Subclasses rebuild cached images here.
     open func updateAttachmentImage() {}
 
     public func setPreventAttachmentImageRendering(_ prevent: Bool) {
@@ -53,7 +52,7 @@ open class SFTextAttachment: NSTextAttachment {
         if prevent { image = nil }
     }
 
-    /// Bear: `attachmentAttributedString` — the one-character string carrying this attachment plus
+    /// The one-character string carrying this attachment plus
     /// the attributes of the represented text's first character.
     public var attachmentAttributedString: NSAttributedString {
         let attrs = representedAttributedText.length == 0 ? nil : representedAttributedText.attributes(at: 0, effectiveRange: nil)
@@ -68,7 +67,7 @@ open class SFTextAttachment: NSTextAttachment {
         return m
     }
 
-    // MARK: Hiding (Bear: setHidden:, setHidden:keepBounds:)
+    // MARK: Hiding
 
     public var isHidden: Bool {
         get { hidden }
@@ -98,7 +97,6 @@ open class SFTextAttachment: NSTextAttachment {
 
     public var unhiddenAttachmentSize: CGSize { storedAttachmentSize }
 
-    /// Bear: `maxWidthAttachmentAtIndex:forTextContainer:`
     public func maxWidthAttachment(at index: Int, for container: NSTextContainer) -> CGFloat {
         let width = container.size.width
         let padding = container.lineFragmentPadding
@@ -108,7 +106,7 @@ open class SFTextAttachment: NSTextAttachment {
 
     open var wantAttachmentBaselineOffset: Bool { true }
 
-    // MARK: Drawing (Bear: drawAttachmentInFullRect: / drawAttachmentInRect:)
+    // MARK: Drawing
 
     public func drawAttachment(inFullRect rect: CGRect) {
         if hidden { return }
@@ -122,10 +120,9 @@ open class SFTextAttachment: NSTextAttachment {
 
     open func drawAttachment(in rect: CGRect) {}
 
-    // Bear does not override NSTextAttachment's 4-argument attachmentBounds(for:...); only the cell path
+    // NSTextAttachment's 4-argument attachmentBounds(for:...) is not overridden; only the cell path
     // (SFTextAttachmentCell.cellFrame → attachmentBounds(...proposedRect:)) applies the baseline offset.
 
-    /// Bear: `attachmentBoundsForTextContainer:proposedLineFragment:glyphPosition:characterIndex:proposedRect:`
     open func attachmentBounds(for textContainer: NSTextContainer?, proposedLineFragment lineFrag: CGRect, glyphPosition position: CGPoint,
                                characterIndex charIndex: Int, proposedRect: CGRect) -> CGRect {
         CGRect(x: proposedRect.origin.x, y: proposedRect.origin.y + attachmentBaselineOffset, width: proposedRect.width, height: proposedRect.height)
@@ -133,7 +130,7 @@ open class SFTextAttachment: NSTextAttachment {
 
     open override var description: String { "\(super.description) hidden=\(hidden)" }
 
-    // MARK: Metadata (Bear: metadata / setMetadata:)
+    // MARK: Metadata
 
     public var metadata: [String: Any]? {
         guard representedAttributedText.length > 0 else { return nil }
@@ -163,7 +160,7 @@ open class SFTextAttachment: NSTextAttachment {
 
     public override class var supportsSecureCoding: Bool { true }
 
-    /// Bear: `copyWithZone:` — a fresh instance with the same represented text, size, rect and offset.
+    /// A fresh instance with the same represented text, size, rect and offset.
     open func copyAttachment() -> Self {
         let c = type(of: self).init(representedAttributedText: representedAttributedText.copy() as? NSAttributedString)
         c.attachmentSize = attachmentSize
@@ -174,7 +171,7 @@ open class SFTextAttachment: NSTextAttachment {
     }
 }
 
-/// Bear: `SFTextAttachmentCell : NSTextAttachmentCell` — delegates size and drawing to the attachment.
+/// Delegates size and drawing to the attachment.
 public final class SFTextAttachmentCell: NSTextAttachmentCell {
     private var sfAttachment: SFTextAttachment? { attachment as? SFTextAttachment }
 
@@ -182,7 +179,7 @@ public final class SFTextAttachmentCell: NSTextAttachmentCell {
                                    glyphPosition position: NSPoint, characterIndex charIndex: Int) -> NSRect {
         let proposed = super.cellFrame(for: textContainer, proposedLineFragment: lineFrag, glyphPosition: position, characterIndex: charIndex)
         guard let a = sfAttachment else { return proposed }
-        // Bear returns the attachment's bounds as the cell frame; its y is the baseline offset.
+        // The attachment's bounds are the cell frame; its y is the baseline offset.
         return a.attachmentBounds(for: textContainer, proposedLineFragment: lineFrag, glyphPosition: position, characterIndex: charIndex, proposedRect: proposed)
     }
 
@@ -195,7 +192,7 @@ public final class SFTextAttachmentCell: NSTextAttachmentCell {
     public override func wantsToTrackMouse() -> Bool { !(sfAttachment?.isHidden ?? true) }
 }
 
-/// Bear: `SFTextAttachmentView : SFTextAttachment` — backed by a real NSView (tables, math,
+/// Backed by a real NSView (tables, math,
 /// previews). Draws a temporary image while the view is not on screen.
 open class SFTextAttachmentView: SFTextAttachment {
     public weak var attachmentViewController: NSViewController?
@@ -213,7 +210,7 @@ open class SFTextAttachmentView: SFTextAttachment {
     }
 }
 
-/// Bear: `SFTextAttachmentFileBackedView : SFTextAttachmentView` — images and files.
+/// Images and files.
 open class SFTextAttachmentFileBackedView: SFTextAttachmentView {
     public private(set) var filePath: String?
 
@@ -223,7 +220,7 @@ open class SFTextAttachmentFileBackedView: SFTextAttachmentView {
         filePath = coder.decodeObject(of: NSString.self, forKey: "filePath") as String?
     }
 
-    /// Bear: `setFilePath:` — rewrites the (percent-escaped) path inside the represented markdown.
+    /// Rewrites the (percent-escaped) path inside the represented markdown.
     public func setFilePath(_ path: String?) {
         guard let path = path else { filePath = nil; return }
         guard let current = filePath else { filePath = path; return }

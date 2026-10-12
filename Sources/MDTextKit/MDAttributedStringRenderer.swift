@@ -1,7 +1,7 @@
 import AppKit
 import PolarMark
 
-/// Bear: `MDAttributedStringRenderer` — owns the 35 stylers and runs them in Bear's fixed order
+/// Owns the 35 stylers and runs them in a fixed order
 /// over an annotated attributed string. Each styler may replace text (attachments), and the
 /// replacement block keeps the styled range (and the proposed selection) in sync.
 public final class MDAttributedStringRenderer: NSObject {
@@ -49,7 +49,7 @@ public final class MDAttributedStringRenderer: NSObject {
 
     private var _textStylers: [MDBaseTextStyler]?
 
-    /// Bear: `textStylers` — lazily built in the exact order of the decompiled getter.
+    /// Lazily built in the exact order of the decompiled getter.
     public var textStylers: [MDBaseTextStyler] {
         get {
             if let s = _textStylers { return s }
@@ -67,20 +67,19 @@ public final class MDAttributedStringRenderer: NSObject {
         set { _textStylers = newValue }
     }
 
-    /// Bear: `attributedStringFromPolarMarkString:` — annotated but unstyled.
+    /// Annotated but unstyled.
     public func attributedString(fromPolarMarkString string: String) -> NSAttributedString {
         ast.replaceAll(withMarkdown: string)
         return ast.annotatedString()
     }
 
-    /// Bear: `styledAttributedStringFromString:`
     public func styledAttributedString(fromString string: String) -> NSMutableAttributedString {
         ast.replaceAll(withMarkdown: string)
         let s = ast.annotatedString().mutableCopy() as! NSMutableAttributedString
         return styleAttributedString(s, in: NSRange(location: 0, length: s.length))
     }
 
-    /// Bear: `styleAttributedString:inRange:` — the replacement block only grows/shrinks the range.
+    /// The replacement block only grows/shrinks the range.
     @discardableResult
     public func styleAttributedString(_ s: NSMutableAttributedString, in range: NSRange) -> NSMutableAttributedString {
         var r = range
@@ -93,7 +92,7 @@ public final class MDAttributedStringRenderer: NSObject {
         return s
     }
 
-    /// Bear: `styleAttributedString:proposedSelectionRange:selectionLocationOffset:asyncCompletionBlock:` —
+    /// 
     /// the selection-aware variant used while editing; `selectionLocationOffset` is where the styled substring
     /// starts inside the full text storage. Hashtag spacers that wrap the caret are skipped so the caret stays
     /// inside the tag being typed.

@@ -3,7 +3,7 @@ import PolarMark
 
 // Block-level stylers, each a faithful port of the decompiled MDTextKit class of the same name.
 
-/// Bear: `MDBodyTextStyler` — applies the body font/paragraph style to the whole range.
+/// Applies the body font/paragraph style to the whole range.
 public final class MDBodyTextStyler: MDBaseTextStyler {
     public var bodyTextAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.systemFont(ofSize: 14),
@@ -16,7 +16,7 @@ public final class MDBodyTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDBidiTextStyler` — paragraph style per PMKDirection, forced writing direction on inline runs,
+/// Paragraph style per PMKDirection, forced writing direction on inline runs,
 /// base writing direction on list/quote paragraphs, and the paragraph indent for plain paragraphs.
 public final class MDBidiTextStyler: MDBaseTextStyler {
     public var ltrParagraphStyle: NSParagraphStyle = .default
@@ -84,7 +84,6 @@ public final class MDBidiTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDHeadingTextStyler`
 public final class MDHeadingTextStyler: MDBaseTextStyler {
     public var headerFont: NSFont = .systemFont(ofSize: 14)
     public var modularScale: CGFloat = 1
@@ -106,14 +105,14 @@ public final class MDHeadingTextStyler: MDBaseTextStyler {
             p.setCenteredLineHeightMultiplier(self.lineHeightMultiplier, for: font)
             if setextMarker.location == NSNotFound {
                 if self.addTopBottomPadding {
-                    p.paragraphSpacingBefore += CGFloat(Float(self.paddingTopMultiplier * font.pointSize).rounded(.toNearestOrAwayFromZero)) // Bear: roundf
+                    p.paragraphSpacingBefore += CGFloat(Float(self.paddingTopMultiplier * font.pointSize).rounded(.toNearestOrAwayFromZero)) // roundf
                     let next = ns.nextParagraph(for: headingRange)
                     var skipBottom = false
                     if next.length == 1, ns.character(at: next.location) == 0x0A, next.location > 0, ns.character(at: next.location - 1) == 0x0A {
                         skipBottom = true
                     }
                     if !skipBottom {
-                        p.paragraphSpacing += CGFloat(Float(self.paddingBottomMultiplier * font.pointSize).rounded(.toNearestOrAwayFromZero)) // Bear: roundf
+                        p.paragraphSpacing += CGFloat(Float(self.paddingBottomMultiplier * font.pointSize).rounded(.toNearestOrAwayFromZero)) // roundf
                     }
                 }
                 p.firstLineHeadIndent -= self.defaultParagraphIndent
@@ -137,7 +136,6 @@ public final class MDHeadingTextStyler: MDBaseTextStyler {
         }
     }
 
-    /// Bear: `atxAttachmentForRepresentedAttributedText:headerLevel:headerFont:rtl:`
     public func atxAttachment(forRepresentedAttributedText text: NSAttributedString, headerLevel level: Int, headerFont: NSFont, rtl: Bool) -> MDATXHeadingAttachment {
         let key = "atx|\(level)|\(rtl)|\(text.string)" as NSString
         if let cached = cache.object(forKey: key) as? MDATXHeadingAttachment {
@@ -163,7 +161,6 @@ public final class MDHeadingTextStyler: MDBaseTextStyler {
         return a.copyAttachment()
     }
 
-    /// Bear: `setextAttachmentForRepresentedAttributedText:headerLevel:headerFont:`
     public func setextAttachment(forRepresentedAttributedText text: NSAttributedString, headerLevel level: Int, headerFont: NSFont) -> MDSETEXTHeadingAttachment {
         let key = "setext|\(level)" as NSString
         if let cached = cache.object(forKey: key) as? MDSETEXTHeadingAttachment {
@@ -180,7 +177,6 @@ public final class MDHeadingTextStyler: MDBaseTextStyler {
         return a.copyAttachment()
     }
 
-    /// Bear: `headingFontForBaseFont:headerLevel:`
     public func headingFont(forBaseFont base: NSFont, headerLevel level: Int) -> NSFont {
         let key = "font|\(base.fontName)|\(base.pointSize)|\(level)" as NSString
         if let cached = cache.object(forKey: key) as? NSFont { return cached }
@@ -190,16 +186,15 @@ public final class MDHeadingTextStyler: MDBaseTextStyler {
         return font
     }
 
-    /// Bear: `headerSizeForBaseSize:headerLevel:maxHeaderLevel:modularScale:`
     public func headerSize(forBaseSize base: CGFloat, headerLevel level: Int, maxHeaderLevel maxLevel: Int, modularScale scale: CGFloat) -> CGFloat {
         var mapped = level < 4 ? level : maxLevel
         if level == 3 { mapped = 5 }
         if level == 2 { mapped = 3 }
-        return CGFloat(Float(base * pow(scale, CGFloat(maxLevel - mapped))).rounded(.toNearestOrAwayFromZero)) // Bear: roundf (x86 copysign(0.5)+roundss $0xb)
+        return CGFloat(Float(base * pow(scale, CGFloat(maxLevel - mapped))).rounded(.toNearestOrAwayFromZero)) // roundf
     }
 }
 
-/// Bear: `MDUnorderedListTextStyler` — bullets and task checkboxes.
+/// Bullets and task checkboxes.
 public final class MDUnorderedListTextStyler: MDBaseTextStyler {
     public var taskFillColor: NSColor?
     public var taskBorderColor: NSColor?
@@ -234,14 +229,13 @@ public final class MDUnorderedListTextStyler: MDBaseTextStyler {
         }
     }
 
-    /// Bear: `attachmentForRepresentedAttributedText:listLevel:rtl:`
     public func attachment(forRepresentedAttributedText text: NSAttributedString, listLevel: Int, rtl: Bool) -> MDUnorderedListTextAttachment {
         let key = "bullet|\(listLevel & 3)|\(rtl)|\(text.string)" as NSString
         if let cached = cache.object(forKey: key) as? MDUnorderedListTextAttachment {
             cached.representedAttributedText = text
             return cached.copyAttachment()
         }
-        // Bear: the cell is only as tall as the dot (plus a small extra for deeper levels), so the
+        // The cell is only as tall as the dot (plus a small extra for deeper levels), so the
         // baseline offset centres the dot on the cap height.
         let size = baseFontSize * 0.4
         let a = MDUnorderedListTextAttachment(representedAttributedText: text)
@@ -260,7 +254,6 @@ public final class MDUnorderedListTextStyler: MDBaseTextStyler {
         return a.copyAttachment()
     }
 
-    /// Bear: `taskAttachmentForRepresentedAttributedText:listLevel:taskCompleted:rtl:`
     public func taskAttachment(forRepresentedAttributedText text: NSAttributedString, listLevel: Int, taskCompleted: Bool, rtl: Bool) -> MDTaskTextAttachment {
         let key = "task|\(rtl)|\(text.string.lowercased())" as NSString
         if let cached = cache.object(forKey: key) as? MDTaskTextAttachment {
@@ -286,7 +279,7 @@ public final class MDUnorderedListTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDOrderedListTextStyler` — numbers stay as text; a spacer attachment right-aligns them in the gutter.
+/// Numbers stay as text; a spacer attachment right-aligns them in the gutter.
 public final class MDOrderedListTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         var minimumLineHeight: CGFloat = 0
@@ -312,7 +305,7 @@ public final class MDOrderedListTextStyler: MDBaseTextStyler {
         _ = minimumLineHeight; _ = lineSpacing
     }
 
-    /// Bear: `spaceSizeForMarkerRange:inAttributedString:` — the width of the marker's trailing space (cached).
+    /// The width of the marker's trailing space (cached).
     public func spaceSize(forMarkerRange marker: NSRange, in s: NSAttributedString) -> CGFloat {
         let key = " " as NSString
         if let n = cache.object(forKey: key) as? NSNumber, n.doubleValue != 0 { return CGFloat(n.doubleValue) }
@@ -321,7 +314,7 @@ public final class MDOrderedListTextStyler: MDBaseTextStyler {
         return w
     }
 
-    /// Bear: `numberPlusSeparatorSizeForMarkerRange:inAttributedString:` — width of "12." (cached per text).
+    /// Width of "12." (cached per text).
     public func numberPlusSeparatorSize(forMarkerRange marker: NSRange, in s: NSAttributedString) -> CGFloat {
         let r = NSRange(location: marker.location, length: marker.length - 1)
         let key = (s.string as NSString).substring(with: r) as NSString
@@ -332,7 +325,7 @@ public final class MDOrderedListTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDIndentSpaceTextStyler` — leading tabs/spaces of nested list items become a sized spacer attachment.
+/// Leading tabs/spaces of nested list items become a sized spacer attachment.
 public final class MDIndentSpaceTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         s.enumerateAttribute(.pmkIndentSpace, in: range, options: []) { value, run, _ in
@@ -343,7 +336,6 @@ public final class MDIndentSpaceTextStyler: MDBaseTextStyler {
         }
     }
 
-    /// Bear: `+attachmentForRange:inAttributedString:tabSize:paragraphIndent:fontSize:`
     public static func attachment(forRange range: NSRange, in s: NSAttributedString, tabSize: CGFloat, paragraphIndent: CGFloat, fontSize: CGFloat) -> MDIndentSpaceTextAttachment {
         let a = MDIndentSpaceTextAttachment(representedAttributedText: s.attributedSubstring(from: range))
         let info = s.listOrBlockquoteItemInfo(at: NSMaxRange(range))
@@ -363,7 +355,7 @@ public final class MDIndentSpaceTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDBlockQuoteTextStyler` — "> " becomes an attachment, the quote gets its background colour and
+/// "> " becomes an attachment, the quote gets its background colour and
 /// extra paragraph spacing at its top and bottom paragraphs.
 public final class MDBlockQuoteTextStyler: MDBaseTextStyler {
     public var textAttributes: [NSAttributedString.Key: Any] = [:]
@@ -378,7 +370,7 @@ public final class MDBlockQuoteTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         let ns = s.string as NSString
         s.enumerateBlockquote(in: range, options: [], listBlock: { levelRange, level, _, _ in
-            // Bear (block_invoke): callouts inside the level get the text attributes, colours, 0.8×size
+            // Callouts inside the level get the text attributes, colours, 0.8×size
             // paragraph spacing and the nested tail indent; a level without callouts only gets the bar colour.
             var handledCallout = false
             s.enumerateCallout(in: ns.paragraphRange(for: levelRange), options: []) { calloutRange, _, _, type, _ in
@@ -433,7 +425,7 @@ public final class MDBlockQuoteTextStyler: MDBaseTextStyler {
                 }
                 i -= 1
             }
-            // Bear: callout head → the "[!TYPE] " marker becomes an MDCalloutTextAttachment (icon + label).
+            // Callout head → the "[!TYPE] " marker becomes an MDCalloutTextAttachment (icon + label).
             if info.isCallout, info.itemIndex == 0 {
                 let para2 = (s.string as NSString).paragraphRange(for: NSRange(location: min(markerRange.location, s.length), length: 0))
                 s.enumerateCallout(in: para2, options: []) { _, marker, title, _, stop in
@@ -452,7 +444,6 @@ public final class MDBlockQuoteTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDFencedCodeTextStyler`
 public final class MDFencedCodeTextStyler: MDBaseTextStyler {
     public var textAttributes: [NSAttributedString.Key: Any] = [:]
     public var languageColor: NSColor = .black
@@ -514,7 +505,6 @@ public final class MDFencedCodeTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDThematicBreakTextStyler`
 public final class MDThematicBreakTextStyler: MDBaseTextStyler {
     public var borderColor: NSColor?
 
@@ -542,7 +532,6 @@ public final class MDThematicBreakTextStyler: MDBaseTextStyler {
     }
 }
 
-/// Bear: `MDHardLineBreakTextStyler`
 public final class MDHardLineBreakTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         s.enumerateHardLinebreak(in: range, options: []) { run, _ in
@@ -552,7 +541,6 @@ public final class MDHardLineBreakTextStyler: MDBaseTextStyler {
         }
     }
 
-    /// Bear: `attachmentForRange:inAttributedString:`
     public func attachment(forRange range: NSRange, in s: NSAttributedString) -> MDHardLineBreakTextAttachment {
         let a = MDHardLineBreakTextAttachment(representedAttributedText: s.attributedSubstring(from: range))
         let ps = s.font(at: range.location)?.pointSize ?? baseFontSize
@@ -571,11 +559,11 @@ public final class MDHardLineBreakTextStyler: MDBaseTextStyler {
 public final class MDIndentedCodeTextStyler: MDBaseTextStyler {}
 public final class MDMathBlockTextStyler: MDBaseTextStyler {}
 public final class MDMermaidFencedCodeTextStyler: MDBaseTextStyler {}
-/// Bear: `MDTableTextStyler` — the whole table block becomes one view-based `MDTableTextAttachment`.
+/// The whole table block becomes one view-based `MDTableTextAttachment`.
 public final class MDTableTextStyler: MDBaseTextStyler {
-    /// UI-layer hook (Bear: TableAttachmentViewController) that lays the grid out and renders it into the attachment.
+    /// UI-layer hook that lays the grid out and renders it into the attachment.
     public var attachmentRenderer: ((MDTableTextAttachment) -> Void)?
-    /// Bear removes the table styler from a cell editor's renderer; the port disables it instead.
+    /// A cell editor's renderer disables the table styler.
     public var isEnabled = true
 
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
@@ -598,7 +586,7 @@ public final class MDTableTextStyler: MDBaseTextStyler {
     }
 }
 public final class MDMetadataTextStyler: MDBaseTextStyler {}
-/// Bear: `MDFoldTextStyler` — replaces the fold comment plus the hidden section with one "•••" pill.
+/// Replaces the fold comment plus the hidden section with one "•••" pill.
 public final class MDFoldTextStyler: MDBaseTextStyler {
     public var backgroundColor: NSColor?
     public var textColor: NSColor?

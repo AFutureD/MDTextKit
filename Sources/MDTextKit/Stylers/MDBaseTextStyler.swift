@@ -1,12 +1,12 @@
 import AppKit
 import PolarMark
 
-/// Bear: the `replacementBlock` every styler receives. Called after the styler replaced
+/// The `replacementBlock` every styler receives. Called after the styler replaced
 /// `range` of the attributed string with `replacement` so the caller can keep the styled
 /// range and the selection in sync.
 public typealias MDStylerReplacementBlock = (_ range: NSRange, _ replacement: NSAttributedString) -> Void
 
-/// Bear: `MDBaseTextStyler`. Holds the metrics shared by every styler and the
+/// `MDBaseTextStyler`. Holds the metrics shared by every styler and the
 /// `ListUtils` category helpers (spacers, indentation, writing direction).
 open class MDBaseTextStyler: NSObject {
     public var cache = NSCache<AnyObject, AnyObject>()
@@ -24,15 +24,14 @@ open class MDBaseTextStyler: NSObject {
         super.init()
     }
 
-    /// Bear: `styleTextInAttributedString:range:replacementBlock:` — base does nothing.
+    /// Base does nothing.
     open func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {}
 
-    /// Bear: `canStyleAsync`
     open var canStyleAsync: Bool { false }
 
     // MARK: - ListUtils
 
-    /// Bear: `addBoundarySpacerAttachment:inAttributedString:range:replacementBlock:` — inserts a copy of
+    /// Inserts a copy of
     /// `attachment` before and after `range`, both marked `MDSpacer`, and tags the neighbouring
     /// character as part of the spacer pair (the right spacer is inserted first so indexes stay valid).
     public func addBoundarySpacerAttachment(_ attachment: SFTextAttachment, in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
@@ -51,7 +50,6 @@ open class MDBaseTextStyler: NSObject {
         s.addAttribute(.mdSpacer, value: NSNumber(value: 1), range: NSRange(location: range.location, length: 2))
     }
 
-    /// Bear: `addLeftBoundarySpacerAttachment:inAttributedString:atIndex:replacementBlock:`
     public func addLeftBoundarySpacerAttachment(_ attachment: SFTextAttachment, in s: NSMutableAttributedString, at index: Int, replacementBlock: @escaping MDStylerReplacementBlock) {
         var attrs = s.attributes(at: index, effectiveRange: nil)
         attrs[.mdSpacer] = NSNumber(value: 1)
@@ -61,7 +59,6 @@ open class MDBaseTextStyler: NSObject {
         s.addAttribute(.mdSpacer, value: NSNumber(value: 1), range: NSRange(location: index, length: 2))
     }
 
-    /// Bear: `addRightBoundarySpacerAttachment:inAttributedString:atIndex:replacementBlock:`
     public func addRightBoundarySpacerAttachment(_ attachment: SFTextAttachment, in s: NSMutableAttributedString, at index: Int, replacementBlock: @escaping MDStylerReplacementBlock) {
         var attrs = s.attributes(at: index - 1, effectiveRange: nil)
         attrs[.mdSpacer] = NSNumber(value: 2)
@@ -71,23 +68,20 @@ open class MDBaseTextStyler: NSObject {
         s.addAttribute(.mdSpacer, value: NSNumber(value: 2), range: NSRange(location: index - 1, length: 2))
     }
 
-    /// Bear: `isAttributedString:RTLAtIndex:`
     public func isAttributedString(_ s: NSAttributedString, RTLAt index: Int) -> Bool {
         s.writingDirection(at: index) == 1
     }
 
-    /// Bear: `forceWritingDirectionToMatchParagraphInRange:inAttributedString:`
     public func forceWritingDirectionToMatchParagraph(in range: NSRange, in s: NSMutableAttributedString) {
         let dir = s.writingDirection(at: range.location)
         s.addAttribute(.writingDirection, value: [NSNumber(value: dir)], range: range)
     }
 
-    /// Bear: `forceWritingDirectionToLTRInRange:inAttributedString:`
     public func forceWritingDirectionToLTR(in range: NSRange, in s: NSMutableAttributedString) {
         s.addAttribute(.writingDirection, value: [NSNumber(value: 0)], range: range)
     }
 
-    /// Bear: `indentListItemRange:indentWidth:inAttributedString:replacementBlock:` (an alias of
+    /// `indentListItemRange:indentWidth:inAttributedString:replacementBlock:` (an alias of
     /// `indentParagraphsForListItemRange:…` in the binary) — every paragraph of the item gets
     /// `headIndent += indentWidth`, `firstLineHeadIndent = defaultParagraphIndent`.
     public func indentListItemRange(_ range: NSRange, indentWidth: CGFloat, in s: NSMutableAttributedString, replacementBlock: @escaping MDStylerReplacementBlock) {
@@ -105,7 +99,7 @@ open class MDBaseTextStyler: NSObject {
         }
     }
 
-    /// Bear: `indentBlockQuoteItemRange:indentWidth:inAttributedString:replacementBlock:` (alias of
+    /// `indentBlockQuoteItemRange:indentWidth:inAttributedString:replacementBlock:` (alias of
     /// `indentParagraphsForBlockquoteItemRange:…`).
     public func indentBlockQuoteItemRange(_ range: NSRange, indentWidth: CGFloat, in s: NSMutableAttributedString, replacementBlock: @escaping MDStylerReplacementBlock) {
         indentParagraphsForBlockquoteItemRange(range, indentWidth: indentWidth, in: s, replacementBlock: replacementBlock)
@@ -121,7 +115,7 @@ open class MDBaseTextStyler: NSObject {
         }
     }
 
-    /// Bear: `matchIndentOnNewlineForListItemRange:indentWidth:inAttributedString:` — when the item ends with
+    /// When the item ends with
     /// a newline followed by another newline (an empty paragraph after it), the empty paragraph keeps the
     /// item's indentation so the caret does not jump left.
     public func matchIndentOnNewline(forListItemRange range: NSRange, indentWidth: CGFloat, in s: NSMutableAttributedString) {
@@ -145,7 +139,7 @@ open class MDBaseTextStyler: NSObject {
         s.addAttribute(.paragraphStyle, value: p, range: NSRange(location: end, length: 1))
     }
 
-    /// Bear: `attachmentForRange:inAttributedString:` (ListUtils) — the indent-space attachment for a run of
+    /// `attachmentForRange:inAttributedString:` (ListUtils) — the indent-space attachment for a run of
     /// leading whitespace, sized with this styler's metrics.
     public func attachmentForRange(_ range: NSRange, in s: NSAttributedString) -> MDIndentSpaceTextAttachment {
         MDIndentSpaceTextStyler.attachment(forRange: range, in: s, tabSize: baseTabSize, paragraphIndent: defaultParagraphIndent, fontSize: baseFontSize)
@@ -153,7 +147,7 @@ open class MDBaseTextStyler: NSObject {
 }
 
 public extension NSURL {
-    /// Bear: `+[NSURL(ValidURL) validURLFromString:]` — tolerant URL construction, defaulting to https.
+    /// Tolerant URL construction, defaulting to https.
     @objc static func validURL(fromString string: String?) -> URL? {
         guard let string = string, !string.isEmpty else { return nil }
         var url: URL? = nil
@@ -176,15 +170,15 @@ public extension NSURL {
 }
 
 public extension NSMutableAttributedString {
-    /// Bear: `-[NSMutableAttributedString(Italic) fixItalicAttributeInRange:]` — fonts without an italic
+    /// Fonts without an italic
     /// face get a −14° skew transform (emoji excluded).
     func fixItalicAttribute(in range: NSRange) {
         fixFontAttribute(in: range)
         enumerateAttribute(.font, in: range, options: []) { value, run, _ in
             guard let font = value as? NSFont, font.fontName != "AppleColorEmoji" else { return }
             guard !font.fontDescriptor.symbolicTraits.contains(.italic) else { return }
-            // Bear scales the transform by the point size; this SDK's `init(descriptor:textTransform:)` already
-            // applies the descriptor's size, so only the skew goes into the transform here.
+            // `init(descriptor:textTransform:)` already applies the descriptor's size, so only the skew goes into
+            // the transform here.
             let radians = Double(acosf(0)) * -14.0 / 90.0
             var transform = AffineTransform.identity
             transform.m21 = -CGFloat(tanf(Float(radians)))

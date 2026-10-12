@@ -1,7 +1,7 @@
 import Foundation
 
 /// Attribute keys carried by the "annotated string" that PolarMark produces.
-/// Raw values are Bear's exact attribute names (`PMK*AttributeName` constants):
+/// Raw values are the `PMK*AttributeName` constants:
 /// the content attribute covers the whole construct (markers included) and the
 /// `*Marker` attribute covers only the syntax characters.
 ///
@@ -102,13 +102,12 @@ public extension NSAttributedString.Key {
     static let pmkCalloutTitle = NSAttributedString.Key("PMKCalloutTitle")
 }
 
-/// Bear: `PMKOpenMarkerValue` / `PMKCloseMarkerValue` (NSNumber 1 / 2).
+/// `PMKOpenMarkerValue` / `PMKCloseMarkerValue` (NSNumber 1 / 2).
 public enum PMKMarkerValue: Int {
     case open = 1
     case close = 2
 }
 
-/// Bear: `PMKHeadingATXValue` / `PMKHeadingSETEXValue`.
 public enum PMKHeadingMarkerValue: Int {
     case atx = 1
     case setext = 2
@@ -120,14 +119,13 @@ public enum PMKTaskState: Int {
     case completed = 2
 }
 
-/// Bear: `PMKDirectionLtrValue` / `PMKDirectionRtlValue` / `PMKDirectionNaturalValue`.
 public enum PMKDirectionValue: Int {
     case natural = 0
     case ltr = 1
     case rtl = 2
 }
 
-/// Which inline style an operation toggles. Bear: `PMKInlineStyle` + `toggleInlineStyle:selectionRange:style:`.
+/// Which inline style an operation toggles (`toggleInlineStyle:selectionRange:style:`).
 public enum PMKInlineStyleKind: CaseIterable {
     case strong, emphasis, strikethrough, underline, highlighter, code
 
@@ -143,7 +141,7 @@ public enum PMKInlineStyleKind: CaseIterable {
     }
 }
 
-/// Which block style an operation toggles. Bear: `toggleBlockStyle:selectionRange:style:`.
+/// Which block style an operation toggles (`toggleBlockStyle:selectionRange:style:`).
 public enum PMKBlockStyleKind: Equatable {
     case heading(Int)
     case unorderedList
@@ -153,7 +151,7 @@ public enum PMKBlockStyleKind: Equatable {
     case fencedCode
 }
 
-/// Bear: `+[PMKAttributes markerAttributes]` — every `*Marker` key.
+/// Every `*Marker` key.
 public enum PMKAttributes {
     public static let markerAttributes: [NSAttributedString.Key] = [
         .pmkHeadingMarker, .pmkListMarker, .pmkBlockquoteMarker, .pmkFencedCodeMarker, .pmkStrongMarker,

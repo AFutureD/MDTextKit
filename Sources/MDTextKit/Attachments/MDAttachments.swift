@@ -5,16 +5,16 @@ import PolarMark
 // markdown in the attributed string (see SFTextAttachment.representedAttributedText).
 
 private extension CGRect {
-    /// Bear's `frintm/frintp/frintm/frintm`: floor x, ceil y, floor width, floor height.
+    /// Floor x, ceil y, floor width, floor height.
     var pixelFloorCeil: CGRect { CGRect(x: floor(minX), y: ceil(minY), width: floor(width), height: floor(height)) }
-    /// Bear's `frinta` on all four fields: round half away from zero.
+    /// Round half away from zero on all four fields.
     var pixelRounded: CGRect {
         CGRect(x: minX.rounded(.toNearestOrAwayFromZero), y: minY.rounded(.toNearestOrAwayFromZero),
                width: width.rounded(.toNearestOrAwayFromZero), height: height.rounded(.toNearestOrAwayFromZero))
     }
 }
 
-/// Bear: `MDATXHeadingAttachment` — the stacked bars + level number drawn where "# " was.
+/// The stacked bars + level number drawn where "# " was.
 public final class MDATXHeadingAttachment: SFTextAttachment {
     public var color: NSColor?
     public var accentColor: NSColor?
@@ -45,7 +45,6 @@ public final class MDATXHeadingAttachment: SFTextAttachment {
         number.draw(with: NSRect(x: x, y: y1 + bar, width: longest, height: bar + step), options: [])
     }
 
-    /// Bear: `lineWidthForLineNumber:level:baseWidth:`
     public func lineWidth(forLineNumber line: Int, level: Int, baseWidth: CGFloat) -> CGFloat {
         let full: Bool
         switch line {
@@ -57,7 +56,7 @@ public final class MDATXHeadingAttachment: SFTextAttachment {
         return CGFloat(Int(baseWidth * (full ? 0.9 : 0.55)))
     }
 
-    /// Bear: `numberAttributedStringWithFontSize:` — right-aligned level number in the accent color.
+    /// Right-aligned level number in the accent color.
     public func numberAttributedString(fontSize: CGFloat) -> NSAttributedString {
         let font = NSFont.boldSystemFont(ofSize: fontSize)
         let p = NSMutableParagraphStyle()
@@ -88,7 +87,7 @@ public final class MDATXHeadingAttachment: SFTextAttachment {
     }
 }
 
-/// Bear: `MDSETEXTHeadingAttachment` — the underline drawn for `===` / `---` headings.
+/// The underline drawn for `===` / `---` headings.
 public final class MDSETEXTHeadingAttachment: SFTextAttachment {
     public var lineWidth: CGFloat = 1
     public var lineColor: NSColor?
@@ -123,7 +122,7 @@ public final class MDSETEXTHeadingAttachment: SFTextAttachment {
     }
 }
 
-/// Bear: `MDUnorderedListTextAttachment` — bullet shapes per nesting level (level & 3).
+/// Bullet shapes per nesting level (level & 3).
 public final class MDUnorderedListTextAttachment: SFTextAttachment {
     public var bulletLevel: Int = 0
     public var bulletColor: NSColor?
@@ -176,10 +175,10 @@ public final class MDUnorderedListTextAttachment: SFTextAttachment {
     }
 }
 
-/// Bear: `MDOrderedListTextAttachment` — an invisible spacer that right-aligns the number.
+/// An invisible spacer that right-aligns the number.
 public final class MDOrderedListTextAttachment: SFTextAttachment {}
 
-/// Bear: `MDTaskTextAttachment` — the checkbox.
+/// The checkbox.
 public final class MDTaskTextAttachment: SFTextAttachment {
     public var completed = false
     public var borderWidth: CGFloat = 1
@@ -194,7 +193,6 @@ public final class MDTaskTextAttachment: SFTextAttachment {
         if completed { drawCheckboxCheck(for: r) }
     }
 
-    /// Bear: `drawCheckboxBodyForCheckboxRect:`
     public func drawCheckboxBody(for rect: CGRect) {
         let path = NSBezierPath.squircle(in: rect, cornerRadius: CGFloat(Int(rect.width * 0.3)))
         if let fill = fillColor {
@@ -212,7 +210,7 @@ public final class MDTaskTextAttachment: SFTextAttachment {
         path.stroke()
     }
 
-    /// Bear: `drawCheckboxCheckForCheckboxRect:` — PaintCode check mark, filled with checkColor at alpha 0.4.
+    /// PaintCode check mark, filled with checkColor at alpha 0.4.
     public func drawCheckboxCheck(for rect: CGRect) {
         func p(_ px: CGFloat, _ py: CGFloat) -> NSPoint { NSPoint(x: rect.minX + rect.width * px, y: rect.minY + rect.height * py) }
         let path = NSBezierPath()
@@ -264,7 +262,7 @@ public final class MDTaskTextAttachment: SFTextAttachment {
     }
 }
 
-/// Bear: `MDThematicBreakTextAttachment` — the horizontal rule.
+/// The horizontal rule.
 public final class MDThematicBreakTextAttachment: SFTextAttachment {
     public var lineWidth: CGFloat = 1
     public var lineColor: NSColor?
@@ -297,7 +295,7 @@ public final class MDThematicBreakTextAttachment: SFTextAttachment {
     public override func copyAttachment() -> Self { let c = super.copyAttachment(); c.lineWidth = lineWidth; c.lineColor = lineColor; return c }
 }
 
-/// Bear: `MDHardLineBreakTextAttachment` — the return-arrow glyph.
+/// The return-arrow glyph.
 public final class MDHardLineBreakTextAttachment: SFTextAttachment {
     public var arrowColor: NSColor?
     public override func drawAttachment(in rect: CGRect) {
@@ -308,7 +306,7 @@ public final class MDHardLineBreakTextAttachment: SFTextAttachment {
     public override func copyAttachment() -> Self { let c = super.copyAttachment(); c.arrowColor = arrowColor; return c }
 }
 
-/// Bear: `MDHighlighterTextAttachment` — the marker-pen icon next to a highlighter.
+/// The marker-pen icon next to a highlighter.
 public final class MDHighlighterTextAttachment: SFTextAttachment {
     public var color: NSColor?
     public var accentColor: NSColor?
@@ -320,7 +318,7 @@ public final class MDHighlighterTextAttachment: SFTextAttachment {
     public override func copyAttachment() -> Self { let c = super.copyAttachment(); c.color = color; c.accentColor = accentColor; return c }
 }
 
-/// Bear: `MDLinkTextAttachment` — the link icon that replaces the URL part of `[label](url)`.
+/// The link icon that replaces the URL part of `[label](url)`.
 public final class MDLinkTextAttachment: SFTextAttachment {
     public var color: NSColor?
 
@@ -328,7 +326,7 @@ public final class MDLinkTextAttachment: SFTextAttachment {
         MDTextKitStyleKit.drawLinkIcon(frame: rect.pixelRounded, fillColor: color ?? .black)
     }
 
-    /// Bear: `url` — the PMKLinkURL carried by the represented text.
+    /// The PMKLinkURL carried by the represented text.
     public var url: String? {
         var result: String? = nil
         representedAttributedText.enumerateAttribute(.pmkLinkURL, in: NSRange(location: 0, length: representedAttributedText.length), options: []) { v, r, stop in
@@ -350,7 +348,7 @@ public final class MDLinkTextAttachment: SFTextAttachment {
     public override func copyAttachment() -> Self { let c = super.copyAttachment(); c.color = color; return c }
 }
 
-/// Bear: `MDIconTextAttachment` — draws an NSImage with margins.
+/// Draws an NSImage with margins.
 public final class MDIconTextAttachment: SFTextAttachment {
     public var icon: NSImage?
 
@@ -369,32 +367,32 @@ public final class MDIconTextAttachment: SFTextAttachment {
     public override func copyAttachment() -> Self { let c = super.copyAttachment(); c.icon = icon; return c }
 }
 
-/// Bear: `MDHashtagIconTextAttachment : MDIconTextAttachment` — optional icon in front of a tag.
+/// Optional icon in front of a tag.
 public final class MDHashtagIconTextAttachment: SFTextAttachment {
     public var icon: NSImage?
     public override func drawAttachment(in rect: CGRect) { icon?.draw(in: rect) }
     public override func copyAttachment() -> Self { let c = super.copyAttachment(); c.icon = icon; return c }
 }
 
-/// Bear: `MDBlockQuoteTextAttachment` — replaces "> "; draws nothing (the bar is drawn by the layout manager).
+/// Replaces "> "; draws nothing (the bar is drawn by the layout manager).
 public final class MDBlockQuoteTextAttachment: SFTextAttachment {
     public override func drawAttachment(in rect: CGRect) {}
 }
 
-/// Bear: `MDIndentSpaceTextAttachment` — replaces leading tabs of nested items; width = indent units * tab size.
+/// Replaces leading tabs of nested items; width = indent units * tab size.
 public final class MDIndentSpaceTextAttachment: SFTextAttachment {}
 
-/// Bear: `MDCodeTextAttachment` — zero-text boundary spacer around inline code.
+/// Zero-text boundary spacer around inline code.
 public final class MDCodeTextAttachment: SFTextAttachment {}
 
-/// Bear: `MDTagTextAttachment` — zero-text boundary spacer around a tag pill.
+/// Zero-text boundary spacer around a tag pill.
 public final class MDTagTextAttachment: SFTextAttachment {}
 
-/// Bear: `MDHighlighterSpacerTextAttachment` — zero-text boundary spacer around a highlight.
+/// Zero-text boundary spacer around a highlight.
 public final class MDHighlighterSpacerTextAttachment: SFTextAttachment {}
 
-/// Bear: `MDImageTextAttachment : SFTextAttachmentFileBackedView` — inline image preview. The host resolves the
-/// markdown path to a file (Bear: attachmentFileWrapper); the image is downsampled to the line width × screen
+/// Inline image preview. The host resolves the
+/// markdown path to a file; the image is downsampled to the line width × screen
 /// scale and laid out at its pixel size, then fitted to the available width (asm @0x1bda0).
 public final class MDImageTextAttachment: SFTextAttachmentFileBackedView {
     public var maxTextContainerWidth: CGFloat = 0
@@ -460,7 +458,7 @@ public final class MDImageTextAttachment: SFTextAttachmentFileBackedView {
     }
 }
 
-/// Bear: `MDFoldTextAttachment` — rounded pill (radius h/4) with three dots; `collapsedRange` is relative to
+/// Rounded pill (radius h/4) with three dots; `collapsedRange` is relative to
 /// `representedAttributedText` (marker length … folded length).
 public final class MDFoldTextAttachment: SFTextAttachment {
     public var collapsedRange = NSRange(location: NSNotFound, length: 0)
@@ -507,7 +505,7 @@ public final class MDFoldTextAttachment: SFTextAttachment {
 }
 
 
-/// Bear: `MDTableTextAttachment : SFTextAttachmentView` — width is clamped to the available line width.
+/// Width is clamped to the available line width.
 public final class MDTableTextAttachment: SFTextAttachmentView {
     public var maxTextContainerWidth: CGFloat = 0
 

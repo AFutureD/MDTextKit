@@ -1,6 +1,6 @@
 import Foundation
 
-/// Bear: `pasteCorrectionIn:replacementString:selectionRange:` — three C++ corrections run in sequence
+/// Three C++ corrections run in sequence
 /// (PasteWhitespaceCorrection → PasteDeduplicateBlockCorrection → PasteLineEndingCorrection), each fed the
 /// previous one's string and selection.
 extension PMKAST {

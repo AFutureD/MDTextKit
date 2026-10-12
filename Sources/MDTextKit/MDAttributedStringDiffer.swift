@@ -1,14 +1,13 @@
 import AppKit
 import PolarMark
 
-/// Bear: `MDAttributedStringDiffer`. Finds the sub-range of a freshly styled string
+/// `MDAttributedStringDiffer`. Finds the sub-range of a freshly styled string
 /// that differs from what the text storage already holds, so only that part is written
 /// back (and view-backed attachments survive restyling).
 public final class MDAttributedStringDiffer: NSObject {
     public var ignoreAttachments = false
     public var ignoreColorInCodeBlocks = false
 
-    /// Bear: `diffRangebetweenAttributedString:andAttributedString:inRange:secondDiffRange:`
     /// Returns the differing range of `inner` (NSNotFound when equal); `secondDiffRange` receives
     /// the matching range of `outer` (which starts as `range`).
     public func diffRange(between inner: NSAttributedString, and outer: NSAttributedString, in range: NSRange, secondDiffRange: inout NSRange) -> NSRange {
@@ -52,7 +51,6 @@ public final class MDAttributedStringDiffer: NSObject {
         return NSRange(location: prefix, length: remaining)
     }
 
-    /// Bear: `areAttributes:equalToAttributes:`
     public func areAttributes(_ a: [NSAttributedString.Key: Any], equalTo b: [NSAttributedString.Key: Any]) -> Bool {
         var a = a, b = b
         if a[.mdOriginalAttributes] != nil || b[.mdOriginalAttributes] != nil {
@@ -89,14 +87,13 @@ public final class MDAttributedStringDiffer: NSObject {
         return false
     }
 
-    /// Bear: `isAttachment:equalToAttachment:`
     public func isAttachment(_ a: SFTextAttachment, equalTo b: SFTextAttachment) -> Bool {
         if a.isViewAttachment && b.isViewAttachment { return a.representedText == b.representedText }
         if a.representedText == b.representedText { return a.attachmentBaselineOffset == b.attachmentBaselineOffset }
         return false
     }
 
-    /// Bear: `setAttributesPreservingViewAttachments:range:inAttributedString:` — writes the styled
+    /// Writes the styled
     /// attributes into the storage, keeping an existing equal view attachment instance alive.
     public func setAttributesPreservingViewAttachments(_ attrs: [NSAttributedString.Key: Any], range: NSRange, in s: NSMutableAttributedString) {
         if let new = attrs[.attachment] as? SFTextAttachmentView, range.location < s.length,

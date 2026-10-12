@@ -94,7 +94,7 @@ final class MDTextKitTests: XCTestCase {
         let r = MDAttributedStringRenderer()
         let styled = r.styledAttributedString(fromString: "x`c`y")
         // index 1 is the opening spacer attachment, index 2 the backtick: both carry MDSpacer = 1, so the
-        // caret may not land between them when stepping right from index 1; Bear jumps past the marker.
+        // caret may not land between them when stepping right from index 1; the editor jumps past the marker.
         XCTAssertTrue(styled.hasOpeningSpacer(at: 2))
         let adjusted = styled.spacersAdjustedSelection(forProposedSelection: NSRange(location: 2, length: 0), currentSelection: NSRange(location: 1, length: 0))
         XCTAssertEqual(adjusted.location, 3)

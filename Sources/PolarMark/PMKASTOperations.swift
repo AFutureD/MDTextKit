@@ -1,6 +1,6 @@
 import Foundation
 
-/// Bear: `PMKASTOperationResult` — a replacement the editor should apply plus
+/// A replacement the editor should apply plus
 /// the selection to set afterwards. Operations never mutate the AST directly;
 /// the text storage applies the result and the AST is updated through the
 /// normal edit path.
@@ -16,7 +16,7 @@ public struct PMKASTOperationResult: Equatable {
     }
 }
 
-/// Bear: `PMK::Operation*` (OperationToggleInlineStyle, OperationToggleFold, ...).
+/// `PMK::Operation*` (OperationToggleInlineStyle, OperationToggleFold, ...).
 extension PMKAST {
 
     // MARK: Line inspection helpers
@@ -51,7 +51,6 @@ extension PMKAST {
 
     // MARK: Inline styles
 
-    /// Bear: `-[PMKAST toggleInlineStyle:selectionRange:style:]`
     public func toggleInlineStyle(_ style: PMKInlineStyleKind, selection: NSRange) -> PMKASTOperationResult? {
         let sel = clamp(selection)
         let type: PMKNodeType = {
@@ -80,7 +79,7 @@ extension PMKAST {
 
         let d = style.delimiter
         if sel.length == 0 {
-            // Empty selection: insert a pair and place the caret inside. Bear does the same.
+            // Empty selection: insert a pair and place the caret inside.
             return PMKASTOperationResult(replacementRange: sel, replacementString: d + d,
                                          proposedSelection: NSRange(location: sel.location + d.utf16.count, length: 0))
         }
@@ -106,7 +105,6 @@ extension PMKAST {
 
     // MARK: Block styles
 
-    /// Bear: `-[PMKAST toggleBlockStyle:selectionRange:style:]`
     public func toggleBlockStyle(_ style: PMKBlockStyleKind, selection: NSRange) -> PMKASTOperationResult? {
         let sel = clamp(selection)
         let lastIndex = sel.length > 0 ? NSMaxRange(sel) - 1 : sel.location
@@ -204,7 +202,6 @@ extension PMKAST {
 
     // MARK: Tasks
 
-    /// Bear: `-[PMKAST toggleTask:selectionRange:style:]`
     public func toggleTask(at index: Int) -> PMKASTOperationResult? {
         let info = lineInfo(at: index, parser: makeParser())
         guard case .listItem(_, _, let task, _, let ms, _) = info.kind, task != .notTask else { return nil }
@@ -217,7 +214,7 @@ extension PMKAST {
 
     // MARK: Newline / indentation behaviour
 
-    /// Bear: `-[PMKAST insertNewlineInRange:selectionRange:]` — continues lists and quotes,
+    /// Continues lists and quotes,
     /// exits an empty item, keeps indentation in code blocks.
     public func insertNewline(selection: NSRange) -> PMKASTOperationResult {
         let sel = clamp(selection)
@@ -234,7 +231,7 @@ extension PMKAST {
         switch info.kind {
         case .listItem(let ordered, let number, let task, _, let ms, let me):
             if me >= info.end && sel.location >= me {
-                // Empty item: return removes the marker (exits the list), like Bear.
+                // Empty item: return removes the marker (exits the list).
                 let r = NSRange(location: info.start, length: info.end - info.start)
                 let kept = substring(NSRange(location: info.start, length: ms - info.start))
                 return PMKASTOperationResult(replacementRange: r, replacementString: kept,
@@ -258,7 +255,7 @@ extension PMKAST {
         }
     }
 
-    /// Bear: `-[PMKAST indent:selectionRange:]`. Adds one tab to every line of the selection.
+    /// `-[PMKAST indent:selectionRange:]`. Adds one tab to every line of the selection.
     public func indent(selection: NSRange) -> PMKASTOperationResult {
         let sel = clamp(selection)
         let s = lineStart(at: sel.location)
@@ -270,7 +267,7 @@ extension PMKAST {
                                      proposedSelection: NSRange(location: sel.location + 1, length: sel.length == 0 ? 0 : sel.length + lines.count - 1))
     }
 
-    /// Bear: `-[PMKAST outdent:selectionRange:]`. Removes one tab (or up to 4 spaces) from every line.
+    /// `-[PMKAST outdent:selectionRange:]`. Removes one tab (or up to 4 spaces) from every line.
     public func outdent(selection: NSRange) -> PMKASTOperationResult? {
         let sel = clamp(selection)
         let s = lineStart(at: sel.location)
@@ -294,7 +291,7 @@ extension PMKAST {
                                      proposedSelection: NSRange(location: newLoc, length: sel.length == 0 ? 0 : max(0, sel.length - (removedTotal - removedFirst))))
     }
 
-    /// Bear: `-[PMKAST deletePrevious:selectionRange:]` — backspace right after a list/quote/heading
+    /// Backspace right after a list/quote/heading
     /// marker removes the whole marker instead of one character.
     public func deletePrevious(selection: NSRange) -> PMKASTOperationResult? {
         let sel = clamp(selection)
@@ -315,7 +312,6 @@ extension PMKAST {
         return nil
     }
 
-    /// Bear: `-[PMKAST insertThematicBreak:selectionRange:]`
     public func insertThematicBreak(selection: NSRange) -> PMKASTOperationResult {
         let sel = clamp(selection)
         let atLineStart = sel.location == lineStart(at: sel.location)
@@ -323,7 +319,7 @@ extension PMKAST {
         return PMKASTOperationResult(replacementRange: sel, replacementString: ins, proposedSelection: NSRange(location: sel.location + ins.utf16.count, length: 0))
     }
 
-    /// Bear: `-[PMKAST renumberOrderedListInRange:selectionRange:]`. Results are ordered bottom-up
+    /// `-[PMKAST renumberOrderedListInRange:selectionRange:]`. Results are ordered bottom-up
     /// so they can be applied sequentially.
     public func renumberOrderedList(at index: Int) -> [PMKASTOperationResult] {
         guard let item = listItem(at: index), item.ordered, let list = item.parent, list.type == .list else { return [] }
@@ -342,9 +338,9 @@ extension PMKAST {
         return results.reversed()
     }
 
-    // MARK: Summary (Bear: PMKTextSummary)
+    // MARK: Summary
 
-    /// First heading text (or first non-empty line) — Bear uses this for the note title.
+    /// First heading text (or first non-empty line) — used for the note title.
     public func title() -> String {
         if let h = rootNode.children.first(where: { $0.type == .heading }) {
             return substring(h.contentRange).trimmingCharacters(in: .whitespaces)

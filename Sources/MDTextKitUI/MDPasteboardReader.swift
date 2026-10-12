@@ -3,7 +3,7 @@ import MDTextKit
 import PolarMark
 import UniformTypeIdentifiers
 
-/// Bear: `NSAttributedString.dataFromPolarRepresentation` / `attributedStringFromPolarData:` — keyed archive of the
+/// Keyed archive of the
 /// attributed substring including attachments.
 public extension NSAttributedString {
     func dataFromPolarRepresentation() -> Data? {
@@ -27,7 +27,7 @@ public extension NSMutableAttributedString {
     }
 }
 
-/// Bear: `MDRTFImporter` (rich text → markdown) and the reverse direction used for RTFD copies. The importer walks
+/// `MDRTFImporter` (rich text → markdown) and the reverse direction used for RTFD copies. The importer walks
 /// font traits, underline/strikethrough, links, text lists and heading-sized fonts.
 public enum MDRTFImporter {
     public static func markdown(from rich: NSAttributedString) -> String {
@@ -91,7 +91,7 @@ public enum MDRTFImporter {
     }
 }
 
-/// Bear: `MDPasteboardReader` — which pasteboard content wins and how it becomes markdown.
+/// Which pasteboard content wins and how it becomes markdown.
 public final class MDPasteboardReader {
     public var pasteDestinationInsideCode = false
     public weak var markdownRenderer: MDAttributedStringRenderer?

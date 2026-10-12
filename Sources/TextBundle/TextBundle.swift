@@ -81,7 +81,7 @@ public enum TextBundleError: LocalizedError {
     }
 }
 
-/// Bear: `TextBundle.framework`. Reads and writes `.textbundle` packages and
+/// `TextBundle.framework`. Reads and writes `.textbundle` packages and
 /// `.textpack` ZIP containers. Assets live under `assets/` and are referenced
 /// from the text with relative paths (`![](assets/photo.png)`).
 public final class TextBundle {
@@ -308,7 +308,7 @@ public final class TextBundle {
         url = originalURL
     }
 
-    // MARK: ZIP via ditto (Bear links ZipArchive; macOS ships ditto which handles the same ZIP format)
+    // MARK: ZIP via ditto (macOS ships ditto, which handles the standard ZIP format)
 
     private static func runDitto(_ args: [String]) throws {
         let p = Process()

@@ -5,7 +5,7 @@ public let MDTextViewTextDidChangeNotification = Notification.Name("MDTextViewTe
 public let MDTextViewTextAttributesDidChangeNotification = Notification.Name("MDTextViewTextAttributesDidChangeNotification")
 public let MDTextViewTextDidChangeSelectionNotification = Notification.Name("MDTextViewTextDidChangeSelectionNotification")
 
-/// Bear: `MDTextAttachmentConfigurator` — lets the host validate/replace attachments (file previews, images…).
+/// Lets the host validate/replace attachments (file previews, images…).
 public protocol MDTextAttachmentConfigurator: AnyObject {
     func isTextAttachmentValid(_ attachment: SFTextAttachment) -> Bool
     func replacementAttributedString(forTextAttachment attachment: SFTextAttachment) -> NSAttributedString?
@@ -15,7 +15,7 @@ public extension MDTextAttachmentConfigurator {
     func replacementAttributedString(forTextAttachment attachment: SFTextAttachment) -> NSAttributedString? { nil }
 }
 
-/// Bear: `MDEditorController` — the glue between the text view, the text storage/AST, the renderer,
+/// The glue between the text view, the text storage/AST, the renderer,
 /// the hider and the differ. Ported method by method from the decompilation.
 public final class MDEditorController: NSObject {
     public var attributedStringRenderer = MDAttributedStringRenderer()
@@ -36,7 +36,6 @@ public final class MDEditorController: NSObject {
 
     // MARK: Loading / styling
 
-    /// Bear: `loadString:intoTextView:`
     public func loadString(_ string: String, into textView: NSTextView) {
         storage(textView).setAttributedString(NSAttributedString(string: string))
         performStyling(in: textView, withAutomaticTextChanges: false)
@@ -44,7 +43,7 @@ public final class MDEditorController: NSObject {
         textView.undoManager?.removeAllActions()
     }
 
-    /// Theme change: restyle everything in place without touching the undo stack (Bear wraps `styleTextView:with:`
+    /// Theme change: restyle everything in place without touching the undo stack (`styleTextView:with:` is wrapped
     /// in disable/enableUndoRegistration).
     public func restyleAll(in textView: NSTextView) {
         let ts = storage(textView)
@@ -60,7 +59,6 @@ public final class MDEditorController: NSObject {
         textView.undoManager?.enableUndoRegistration()
     }
 
-    /// Bear: `styledAttributedStringFromString:`
     public func styledAttributedString(fromString string: String) -> NSMutableAttributedString {
         let s = attributedStringRenderer.styledAttributedString(fromString: string)
         var none = NSNotFoundRange
@@ -71,7 +69,7 @@ public final class MDEditorController: NSObject {
 
     public func performStyling(in textView: NSTextView) { performStyling(in: textView, withAutomaticTextChanges: true) }
 
-    /// Bear: `performStylingInTextView:withAutomaticTextChanges:` — the main styling pass after every edit.
+    /// The main styling pass after every edit.
     public func performStyling(in textView: NSTextView, withAutomaticTextChanges automatic: Bool) {
         if automatic { performAutomaticTextChanges(in: textView) }
         var selection = textView.selectedRange()
@@ -133,9 +131,9 @@ public final class MDEditorController: NSObject {
         }
     }
 
-    /// Bear: `replaceCharactersInRange:withAttributedString:selectRange:` (MDTextView) — replace + select without
+    /// `replaceCharactersInRange:withAttributedString:selectRange:` (MDTextView) — replace + select without
     /// going through `shouldChangeText`.
-    /// Bear: `-[NSTextView(Bridge) replaceCharactersInRange:withAttributedString:selectRange:]` (ClassBridge) — writes
+    /// `-[NSTextView(Bridge) replaceCharactersInRange:withAttributedString:selectRange:]` (ClassBridge) — writes
     /// straight into the storage (no shouldChangeText), registers the inverse replacement with the old attributed
     /// substring and the old selection, selects the requested range, and only during undo/redo calls `didChangeText`.
     public func replaceCharacters(in range: NSRange, with s: NSAttributedString, selectRange selection: NSRange, in textView: NSTextView) {
@@ -155,7 +153,7 @@ public final class MDEditorController: NSObject {
         if let um = textView.undoManager, um.isUndoing || um.isRedoing { textView.didChangeText() }
     }
 
-    /// Bear: `invalidateDisplayForStyledRange:inTextView:` — redraw the visible part, plus neighbouring paragraphs and the
+    /// Redraw the visible part, plus neighbouring paragraphs and the
     /// enclosing blockquote (its bar spans several lines).
     public func invalidateDisplay(forStyledRange range: NSRange, in textView: NSTextView) {
         let ts = storage(textView)
@@ -183,7 +181,6 @@ public final class MDEditorController: NSObject {
         if ts.isRangeInsideBlockquote(quote) { lm.invalidateDisplay(forCharacterRange: quote) }
     }
 
-    /// Bear: `diffRangeFromInnerAttrString:outerAttrString:inOuterRange:outerDiffRange:`
     public func diffRange(fromInnerAttrString inner: NSAttributedString, outerAttrString outer: NSAttributedString, inOuterRange range: NSRange, outerDiffRange: inout NSRange) -> NSRange {
         guard useDiff else {
             outerDiffRange = range
@@ -192,7 +189,7 @@ public final class MDEditorController: NSObject {
         return attrStringDiffer.diffRange(between: inner, and: outer, in: range, secondDiffRange: &outerDiffRange)
     }
 
-    // MARK: Folding (Bear: toggleFoldingAtIndex:inTextView:, foldAllHeadingInTextView:, unfoldAllHeadingInTextView:)
+    // MARK: Folding
 
     public func toggleFolding(at index: Int, in textView: NSTextView) {
         let results = foldToggleResults(at: index, in: textView)
@@ -208,7 +205,7 @@ public final class MDEditorController: NSObject {
         return ts.ast.toggleFold(in: r, selectionRange: sel)
     }
 
-    /// Bear: `hasFoldableContentAtIndex:inTextView:` → PMKFoldable attribute present.
+    /// `hasFoldableContentAtIndex:inTextView:` → PMKFoldable attribute present.
     public func hasFoldableContent(at index: Int, in textView: NSTextView) -> Bool {
         let ts = storage(textView)
         guard index >= 0, index < ts.length else { return false }
@@ -229,12 +226,12 @@ public final class MDEditorController: NSObject {
         if !results.isEmpty { applyASTOperationResults(results, in: textView) }
     }
 
-    /// Bear: `markdownLinkWithLabel:url:title:preview:` (label / url only).
+    /// `markdownLinkWithLabel:url:title:preview:` (label / url only).
     public static func markdownLink(label: String, url: String) -> String {
         "[" + label + "](" + PMKAST.percentEscapedURL(url) + ")"
     }
 
-    /// Bear: `performAutomaticTextChangesInTextView:` — list renumbering, unfolding, stray comment removal, indentation and
+    /// List renumbering, unfolding, stray comment removal, indentation and
     /// callout normalisation over the reparsed range (pipes escaping when styling inlines only).
     public func performAutomaticTextChanges(in textView: NSTextView) {
         let ts = storage(textView)
@@ -258,7 +255,6 @@ public final class MDEditorController: NSObject {
         apply(ast.normalizeCallout(in: ts.currentReparsedRange, selectionRange: selection))
     }
 
-    /// Bear: `validateTextAttachmentsWithConfigurator:inAttributedString:selectionRange:selectionLocationOffset:`
     public func validateTextAttachments(with configurator: MDTextAttachmentConfigurator?, in s: NSMutableAttributedString, selectionRange: inout NSRange, selectionLocationOffset offset: Int) {
         guard let configurator = configurator else { return }
         var sel = selectionRange
@@ -283,7 +279,7 @@ public final class MDEditorController: NSObject {
         selectionRange = sel
     }
 
-    /// Bear: `additionalRangeForAttachment:atIndex:inAttributedString:` — the range that must be restyled when an attachment changes.
+    /// The range that must be restyled when an attachment changes.
     public func additionalRange(forAttachment a: NSTextAttachment, at index: Int, in s: NSAttributedString) -> NSRange {
         if a.isList { return s.rangeOfListItem(at: index) }
         if a.isHeader { return s.headerRange(at: index) }
@@ -298,7 +294,7 @@ public final class MDEditorController: NSObject {
         (textView.layoutManager as? MDLayoutManager)?.rearrangeAttachmentsViews(forCharacterRange: range, at: textView.textContainerOrigin)
     }
 
-    /// Bear: `textView:didChangeAttachmentTextRepresentation:previousRepresentedText:` — an attachment (e.g. a checkbox) changed
+    /// An attachment (e.g. a checkbox) changed
     /// the markdown it stands for: push the change into the AST without touching the attributed string.
     public func textView(_ textView: NSTextView, didChangeAttachmentTextRepresentation attachment: SFTextAttachment, previousRepresentedText previous: String) {
         notifyTextChanges(in: textView)
@@ -318,7 +314,6 @@ public final class MDEditorController: NSObject {
         ts.recordNewReplacementChange(forStringRange: stringRange, replacementString: attachment.representedText)
     }
 
-    /// Bear: `replaceCharactersInRange:withAttributedString:inTextView:`
     public func replaceCharacters(in range: NSRange, with s: NSAttributedString, in textView: NSTextView) {
         textView.undoManager?.beginUndoGrouping()
         replaceCharacters(in: range, with: s, selectRange: NSNotFoundRange, in: textView)
@@ -328,7 +323,7 @@ public final class MDEditorController: NSObject {
 
     // MARK: Edit interception
 
-    /// Bear: `textView:shouldChangeTextInRange:replacementString:` — behaviour operations first (applied asynchronously),
+    /// Behaviour operations first (applied asynchronously),
     /// then the AST corrections. Returns false when the edit was handled here.
     public func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString string: String?) -> Bool {
         guard let string = string else { return true }
@@ -365,7 +360,7 @@ public final class MDEditorController: NSObject {
         return false
     }
 
-    /// Bear: `adjustedSelectionForTextView:currentSelection:proposedSelection:` — AST selection correction, then spacer skipping.
+    /// AST selection correction, then spacer skipping.
     public func adjustedSelection(for textView: NSTextView, currentSelection current: NSRange, proposedSelection proposed: NSRange) -> NSRange {
         let ts = storage(textView)
         var result = proposed
@@ -400,7 +395,7 @@ public final class MDEditorController: NSObject {
 
     public func fixTypingAttributes(in textView: NSTextView) { fixTypingAttributes(in: textView, range: textView.selectedRange()) }
 
-    /// Bear: `fixTypingAttributesInTextView:range:` — at the very end of the text, typing uses the bidi styler's
+    /// At the very end of the text, typing uses the bidi styler's
     /// preferred paragraph style plus the paragraph indent.
     public func fixTypingAttributes(in textView: NSTextView, range: NSRange) {
         guard range.length == 0, range.location == storage(textView).length else { return }
@@ -411,11 +406,11 @@ public final class MDEditorController: NSObject {
         textView.typingAttributes = attrs
     }
 
-    // MARK: Links (Bear stores disabled links under "_NSLinkAttributeName")
+    // MARK: Links (disabled links are stored under "_NSLinkAttributeName")
 
     public static let disabledLinkAttribute = NSAttributedString.Key("_NSLinkAttributeName")
 
-    /// Bear: `autodisableLinksInTextView:` — links are clickable only while the view is not first responder.
+    /// Links are clickable only while the view is not first responder.
     public func autodisableLinks(in textView: NSTextView) {
         if textView.window?.firstResponder === textView { disableLinks(in: textView) } else { enableLinks(in: textView) }
     }
@@ -450,7 +445,6 @@ public final class MDEditorController: NSObject {
         return changed
     }
 
-    /// Bear: `urlAtPoint:inTextView:`
     public func url(at point: CGPoint, in textView: NSTextView) -> URL? {
         guard let lm = textView.layoutManager, let container = textView.textContainer else { return nil }
         let ts = storage(textView)
@@ -463,7 +457,6 @@ public final class MDEditorController: NSObject {
         return nil
     }
 
-    /// Bear: `urlsInRange:inTextView:`
     public func urls(in range: NSRange, in textView: NSTextView) -> [URL] {
         let ts = storage(textView)
         var out: [URL] = []
@@ -490,7 +483,6 @@ public final class MDEditorController: NSObject {
 
     // MARK: Markdown hiding
 
-    /// Bear: `autoHideMarkdownInTextView:forOldSelectionRange:newSelectionRange:`
     public func autoHideMarkdown(in textView: NSTextView, forOldSelectionRange old: NSRange, newSelectionRange new: NSRange) {
         let ts = storage(textView)
         guard !ts.editedCharactersOrAttributes else { return }
@@ -498,7 +490,7 @@ public final class MDEditorController: NSObject {
         autoHideCalloutTitle(in: textView, forOldSelectionRange: old, newSelectionRange: new)
     }
 
-    /// Bear: `autoHideCalloutTitleInTextView:forOldSelectionRange:newSelectionRange:` — on an untitled callout head
+    /// On an untitled callout head
     /// line the "Note" label disappears while the caret sits after the marker, so a title can be typed.
     public func autoHideCalloutTitle(in textView: NSTextView, forOldSelectionRange old: NSRange, newSelectionRange new: NSRange) {
         let ts = storage(textView)
@@ -536,7 +528,7 @@ public final class MDEditorController: NSObject {
         _ = hider.showMarkdown(in: r, in: ts)
     }
 
-    /// Bear: `autoHideMarkdownInAttributedString:selectionRange:` — hide everything, then show around the selection.
+    /// Hide everything, then show around the selection.
     public func autoHideMarkdown(in s: NSMutableAttributedString, selectionRange: NSRange) {
         let hider = MDMarkdownHider()
         _ = hider.hideMarkdown(in: NSRange(location: 0, length: s.length), in: s)
@@ -564,13 +556,13 @@ public final class MDEditorController: NSObject {
         return hider.showMarkdown(in: r, in: s)
     }
 
-    // MARK: Applying operation results (Bear: MDEditorController(TextOperations))
+    // MARK: Applying operation results
 
     public func applyASTOperationResults(_ results: [PMKASTOperationResult], in textView: NSTextView) {
         applyASTOperationResults(results, in: textView, postTextDidChange: true)
     }
 
-    /// Bear: `applyASTOperationResults:inTextView:postTextDidChange:` — expands attachments over the union of the results,
+    /// Expands attachments over the union of the results,
     /// applies every replacement to the plain markdown, replaces once, then sets the last proposed selection.
     public func applyASTOperationResults(_ results: [PMKASTOperationResult], in textView: NSTextView, postTextDidChange post: Bool) {
         guard let first = results.first, let last = results.last else { return }
@@ -588,7 +580,6 @@ public final class MDEditorController: NSObject {
         if post { postTextDidChange(textView) }
     }
 
-    /// Bear: `expandTextAttachmentsForASTOperationResults:inTextView:`
     public func expandTextAttachments(forASTOperationResults results: [PMKASTOperationResult], in textView: NSTextView) {
         let ts = storage(textView)
         for r in results {
@@ -607,7 +598,6 @@ public final class MDEditorController: NSObject {
         }
     }
 
-    /// Bear: `applyTextOperationResult:inTextView:`
     public func applyTextOperationResult(_ result: MDTextOperationResult, in textView: NSTextView) {
         guard let replacement = result.replacementAttributedString else {
             textView.setSelectedRange(result.proposedSelectionRange)
@@ -619,7 +609,6 @@ public final class MDEditorController: NSObject {
         textView.undoManager?.endUndoGrouping()
     }
 
-    /// Bear: `applyTextOperationResults:inTextView:`
     public func applyTextOperationResults(_ results: [MDTextOperationResult], in textView: NSTextView) {
         textView.undoManager?.beginUndoGrouping()
         var styled = NSNotFoundRange
@@ -643,13 +632,13 @@ public final class MDEditorController: NSObject {
         textView.undoManager?.endUndoGrouping()
     }
 
-    /// Bear's text view calls `postTextDidChangeNotification`; in this port the text view's `didChangeText` restyles.
-    /// Bear: `-[NSTextView(Bridge) postTextDidChangeNotification]` — tells the delegate synchronously (no `didChangeText`).
+    /// Posts the text-did-change notification; the text view's `didChangeText` restyles.
+    /// Tells the delegate synchronously (no `didChangeText`).
     private func postTextDidChange(_ textView: NSTextView) {
         textView.delegate?.textDidChange?(Notification(name: NSText.didChangeNotification, object: textView))
     }
 
-    // MARK: Commands (Bear: MDEditorController(TextOperations))
+    // MARK: Commands
 
     private func selectionStringRange(_ textView: NSTextView) -> NSRange {
         storage(textView).stringRange(fromAttributedStringRange: textView.selectedRange())
@@ -676,7 +665,7 @@ public final class MDEditorController: NSObject {
         }
     }
 
-    /// Bear: `textViewShouldDeleteBackward:` — true lets the text view delete one character itself.
+    /// True lets the text view delete one character itself.
     public func textViewShouldDeleteBackward(_ textView: NSTextView) -> Bool {
         let sel = selectionStringRange(textView)
         let results = storage(textView).ast.deletePrevious(in: sel, selectionRange: sel)
@@ -701,7 +690,7 @@ public final class MDEditorController: NSObject {
     public func canRemoveIndent(in textView: NSTextView) -> Bool { !storage(textView).ast.outdent(in: selectionStringRange(textView), selectionRange: selectionStringRange(textView)).isEmpty }
     public func removeIndent(in textView: NSTextView) { _ = run(textView) { $0.outdent(in: $1, selectionRange: $1) } }
 
-    /// Bear: `textViewShouldInsertNewLine:` — true lets the text view insert a plain newline.
+    /// True lets the text view insert a plain newline.
     public func textViewShouldInsertNewLine(_ textView: NSTextView) -> Bool {
         let sel = selectionStringRange(textView)
         let results = storage(textView).ast.insertNewline(in: sel, selectionRange: sel)
@@ -722,7 +711,7 @@ public final class MDEditorController: NSObject {
         return false
     }
 
-    /// Bear: `selectionToFirstBlockMarkerInTextView:limitToLineRange:` — where "move to beginning of line" should land:
+    /// Where "move to beginning of line" should land:
     /// right after the list/quote/heading marker of the current line.
     public func selectionToFirstBlockMarker(in textView: NSTextView, limitToLineRange: Bool) -> NSRange {
         let ts = storage(textView)
@@ -793,7 +782,7 @@ public final class MDEditorController: NSObject {
         }
     }
 
-    /// Bear: `toggleInlineStyle:inTextView:` — with a highlighter icon selected, toggles the whole highlight.
+    /// With a highlighter icon selected, toggles the whole highlight.
     public func toggleInlineStyle(_ style: Int, in textView: NSTextView) {
         let ts = storage(textView)
         var selection = textView.selectedRange()
@@ -823,7 +812,7 @@ public final class MDEditorController: NSObject {
         _ = run(textView) { $0.toggleBlockStyle(in: $1, selectionRange: $1, style: style) }
     }
 
-    /// Bear: `toggleHeadingInTextView:headingLevel:` — levels 2…6 map to styles 1…5, anything else is heading 1.
+    /// Levels 2…6 map to styles 1…5, anything else is heading 1.
     public func toggleHeading(in tv: NSTextView, headingLevel level: Int) {
         let style = (2...6).contains(level) ? level - 1 : 0
         toggleBlockStyle(style, in: tv)

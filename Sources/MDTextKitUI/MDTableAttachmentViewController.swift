@@ -3,7 +3,7 @@ import MDTextKit
 import PolarMark
 import SFThemeKit
 
-/// Bear: `TableAttachmentDataModel` — rows of cells (header first, no delimiter row) plus column alignments.
+/// Rows of cells (header first, no delimiter row) plus column alignments.
 public final class MDTableDataModel {
     public typealias Cell = MDTableAttachmentRenderer.Cell
     public var rows: [[Cell]]
@@ -17,7 +17,7 @@ public final class MDTableDataModel {
         self.separatorAttributes = separatorAttributes
     }
 
-    /// Bear: `attributedStringRepresentation` — pipe table with 3…60-wide padded columns and alignment colons.
+    /// Pipe table with 3…60-wide padded columns and alignment colons.
     public func markdown() -> String {
         func count(_ c: Cell) -> Int { c.text.stringByExpandingTextAttachments.count }
         var widths = [Int](repeating: 0, count: columns)
@@ -96,7 +96,7 @@ public final class MDTableDataModel {
     }
 }
 
-/// Bear: `TableAttachmentTextView` — the per-cell editor (inline-only parsing).
+/// The per-cell editor (inline-only parsing).
 final class MDTableCellTextView: MDTextView {
     weak var controller: MDTableAttachmentViewController?
     var indexPath = (row: 0, column: 0)
@@ -141,12 +141,12 @@ final class MDTableCellTextView: MDTextView {
     }
 }
 
-/// Bear: `TableAttachmentTextViewScrollView` — the cell editor's scroll view hands wheel events to the note.
+/// The cell editor's scroll view hands wheel events to the note.
 final class MDTableCellScrollView: NSScrollView {
     override func scrollWheel(with event: NSEvent) { nextResponder?.scrollWheel(with: event) }
 }
 
-/// Bear: `TableAttachmentView` / `TableAttachmentViewMac` — the grid image plus hover "more" button and cell hit-testing.
+/// The grid image plus hover "more" button and cell hit-testing.
 final class MDTableAttachmentView: NSView {
     weak var controller: MDTableAttachmentViewController?
     var image: NSImage? { didSet { needsDisplay = true } }
@@ -192,7 +192,7 @@ final class MDTableAttachmentView: NSView {
     }
 }
 
-/// Bear: `TableAttachmentViewController` (+ core) — owns the model, the grid view, the cell editor and the
+/// `TableAttachmentViewController` (+ core) — owns the model, the grid view, the cell editor and the
 /// debounced write-back of the markdown into the attachment.
 public final class MDTableAttachmentViewController: NSViewController {
     public weak var textAttachment: MDTableTextAttachment?
@@ -220,7 +220,7 @@ public final class MDTableAttachmentViewController: NSViewController {
         let attrs = attachment.representedAttributedText.length > 0 ? attachment.representedAttributedText.attributes(at: 0, effectiveRange: nil) : [:]
         self.model = MDTableDataModel(rows: rows, columns: columns, separatorAttributes: attrs)
         super.init(nibName: nil, bundle: nil)
-        // Bear: setupEditorController — inline-only cell editor without the table styler.
+        // SetupEditorController — inline-only cell editor without the table styler.
         cellEditorController.attributedStringRenderer.styleInlinesOnly = true
         cellEditorController.attributedStringRenderer.tableStyler.isEnabled = false
         cellEditorController.autoHideMarkdown = editorController.autoHideMarkdown
@@ -245,7 +245,7 @@ public final class MDTableAttachmentViewController: NSViewController {
         let image = gridRenderer.image(for: l)
         tableView.image = image
         att.temporaryImage = image
-        // Bear (TableAttachmentViewController.styleObject): border + corner radius live on the view's layer, so they
+        // Border + corner radius live on the view's layer, so they
         // composite above the cell editors and the corners clip them.
         if let layer = tableView.layer {
             layer.cornerRadius = l.cornerRadius
@@ -261,7 +261,7 @@ public final class MDTableAttachmentViewController: NSViewController {
         if needsLayout || sizeChanged { hostNeedsLayout() }
     }
 
-    /// Bear: `delegate.viewController(_:needsLayoutFor:)` — the host re-lays out the attachment character.
+    /// The host re-lays out the attachment character.
     private func hostNeedsLayout() {
         guard let host = hostTextView, let att = textAttachment else { return }
         let ts = host.mdTextStorage
@@ -283,7 +283,7 @@ public final class MDTableAttachmentViewController: NSViewController {
         return textAttachment?.representedText ?? "nil"
     }
 
-    /// Bear (handleLeftArrow / handleRightArrow): enter the table at the last cell (caret at end) or the first cell.
+    /// Enter the table at the last cell (caret at end) or the first cell.
     public func enter(fromRight: Bool) {
         guard !model.rows.isEmpty else { return }
         if fromRight {
@@ -312,10 +312,10 @@ public final class MDTableAttachmentViewController: NSViewController {
         sv.documentView = tv
         sv.drawsBackground = false
         sv.hasVerticalScroller = false
-        // Bear: configure — theme, cell paddings, zero paragraph indent, alternating background.
+        // Configure — theme, cell paddings, zero paragraph indent, alternating background.
         let r = cellEditorController.attributedStringRenderer
         r.styleObject(with: themeManager)
-        r.setBodyParagraphIndent(0)   // Bear: renderer.bodyParagraphIndent = 0
+        r.setBodyParagraphIndent(0)   // the cell editor has no body paragraph indent
         tv.mdTextContainer.style(with: r, themeManager: themeManager)
         tv.mdLayoutManager.style(with: r, themeManager: themeManager)
         tv.typingAttributes = r.defaultTextAttributes
@@ -377,7 +377,7 @@ public final class MDTableAttachmentViewController: NSViewController {
         writeBack(debounce: true)
     }
 
-    /// Bear: `didEditCell(at:attributedString:)` — newlines become `<br>`.
+    /// Newlines become `<br>`.
     private func commitCell(_ tv: MDTableCellTextView) {
         let m = NSMutableAttributedString(attributedString: tv.mdTextStorage)
         let md = m.string.stringByExpandingTextAttachmentsPlain(m)
@@ -389,7 +389,7 @@ public final class MDTableAttachmentViewController: NSViewController {
 
     private func cellAlignment(_ a: Int) -> NSTextAlignment { [0: .left, 1: .center, 2: .right][a] ?? .natural }
 
-    // MARK: Write-back (Bear: updateRepresentedTextAndNotifyDelegate)
+    // MARK: Write-back
 
     func writeBack(debounce: Bool) {
         saveTimer?.invalidate(); saveTimer = nil
@@ -406,7 +406,7 @@ public final class MDTableAttachmentViewController: NSViewController {
         ec.textView(host, didChangeAttachmentTextRepresentation: att, previousRepresentedText: prev)
     }
 
-    // MARK: Menu (Bear: TableAttachment.strings)
+    // MARK: Menu
 
     @objc private func showTableMenu(_ sender: NSButton) {
         let menu = NSMenu()

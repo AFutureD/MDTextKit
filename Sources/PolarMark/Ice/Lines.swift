@@ -1,6 +1,6 @@
 import Foundation
 
-// The C++ engine inside Bear's PolarMark lives in an `Ice::` namespace
+// The parser engine lives in an `Ice::`-style namespace
 // (Ice::Lines, Ice::BlockParser, Ice::InlineParser, Ice::RuleMap...).
 // This folder mirrors that split in Swift. Everything works on UTF-16 code
 // units so that offsets are NSRange-compatible without conversion.

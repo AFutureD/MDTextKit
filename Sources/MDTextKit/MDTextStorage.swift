@@ -2,7 +2,7 @@ import AppKit
 import PolarMark
 
 public protocol MDTextStorageDelegate: AnyObject {
-    /// Bear: `textStorage:processedChanges:` — called from `processEditing` after the AST was updated.
+    /// Called from `processEditing` after the AST was updated.
     func textStorage(_ storage: MDTextStorage, processedChanges tracker: MDAttributedStringChangeTracker)
     func textStorage(_ storage: MDTextStorage, didAddAttachment attachment: NSTextAttachment)
     func textStorage(_ storage: MDTextStorage, didRemoveAttachment attachment: NSTextAttachment)
@@ -13,7 +13,7 @@ public extension MDTextStorageDelegate {
     func textStorage(_ storage: MDTextStorage, didRemoveAttachment attachment: NSTextAttachment) {}
 }
 
-/// Bear: `MDTextStorage : NSTextStorage`. Backed by a plain NSMutableAttributedString
+/// `MDTextStorage : NSTextStorage`. Backed by a plain NSMutableAttributedString
 /// (`_imp`). Every edit is recorded by the change tracker; `processEditing` pushes the
 /// recorded edits into the PolarMark AST (in markdown coordinates, which differ from the
 /// attributed string's because attachments replace markdown runs) and remembers the
@@ -26,7 +26,7 @@ public final class MDTextStorage: NSTextStorage {
     public var preventASTChanges = false
     public weak var mdDelegate: MDTextStorageDelegate?
 
-    /// Bear: `editedCharacters` / `editedCharactersOrAttributes` — true while an edit of that kind is being processed.
+    /// True while an edit of that kind is being processed.
     public var editedCharacters: Bool { editedMask.contains(.editedCharacters) && isProcessingEdits }
     public var editedCharactersOrAttributes: Bool { (editedMask.contains(.editedCharacters) || editedMask.contains(.editedAttributes)) && isProcessingEdits }
     private var isProcessingEdits = false
@@ -48,7 +48,7 @@ public final class MDTextStorage: NSTextStorage {
         return [:]
     }
 
-    /// Bear: `setAttributedString:` — resets tracking and the AST, then lets NSTextStorage do the replacement.
+    /// Resets tracking and the AST, then lets NSTextStorage do the replacement.
     public override func setAttributedString(_ attrString: NSAttributedString) {
         preventASTChanges = true
         replaceCharacters(in: NSRange(location: 0, length: length), with: "")
@@ -71,7 +71,7 @@ public final class MDTextStorage: NSTextStorage {
         edited(.editedAttributes, range: range, changeInLength: 0)
     }
 
-    // MARK: Editing pipeline (Bear: processEditing / processChanges / updateASTWithChanges:)
+    // MARK: Editing pipeline
 
     public override func processEditing() {
         isProcessingEdits = true
@@ -97,7 +97,7 @@ public final class MDTextStorage: NSTextStorage {
         }
     }
 
-    /// Bear: `validateAndSetReparsedRange:forReplacementRange:replacementLenght:` — keeps the union
+    /// Keeps the union
     /// of every reparsed range, shifting the earlier ones past the new edit.
     public func validateAndSetReparsedRange(_ reparsed: NSRange, forReplacementRange replacement: NSRange, replacementLength: Int) {
         var result = reparsed
@@ -108,7 +108,7 @@ public final class MDTextStorage: NSTextStorage {
         currentReparsedRange = result
     }
 
-    /// Bear: `parseChangesUsingBlock:` — hands the annotated markdown of the reparsed range and
+    /// Hands the annotated markdown of the reparsed range and
     /// the matching attributed-string range to the styler, then clears the pending range.
     public func parseChanges(using block: (NSAttributedString, NSRange) -> Void) {
         if currentReparsedRange.location != NSNotFound {
@@ -121,7 +121,7 @@ public final class MDTextStorage: NSTextStorage {
         currentReparsedRange = NSNotFoundRange
     }
 
-    /// Bear: `recordNewReplacementChangeForStringRange:replacementString:` — used when an
+    /// Used when an
     /// operation already applied a replacement to the AST directly.
     public func recordNewReplacementChange(forStringRange range: NSRange, replacementString: String) {
         ast.replaceRange(range, withMarkdown: replacementString)

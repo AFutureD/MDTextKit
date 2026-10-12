@@ -1,16 +1,16 @@
 import AppKit
 import PolarMark
 
-/// Bear: `MDMarkdownHider`. Ported 1:1 from the decompilation. Markers are hidden by
+/// `MDMarkdownHider`. Ported 1:1 from the decompilation. Markers are hidden by
 /// stashing their font/kern under `MDOriginalAttributes` and applying a 0.01pt
 /// placeholder font with zero kerning; attachments that stand for markers are
 /// hidden through `SFTextAttachment.setHidden`. Showing restores the stash.
 public final class MDMarkdownHider: NSObject {
 
-    /// Bear: `+placeholderFont` = `[NSFont systemFontOfSize:0.01]`
+    /// `+placeholderFont` = `[NSFont systemFontOfSize:0.01]`
     public static let placeholderFont: NSFont = NSFont.systemFont(ofSize: 0.01)
 
-    /// Bear: `attributesToHide` (22 keys, decompiled order).
+    /// `attributesToHide` (22 keys, decompiled order).
     public static let attributesToHide: [NSAttributedString.Key] = [
         .pmkStrongMarker, .pmkEmphasisMarker, .pmkCodeMarker, .pmkMathSpanFormula, .pmkMathSpanMarker,
         .pmkMathBlockFormula, .pmkMathBlockMarker, .pmkFencedCodeLanguage, .pmkHighlighterMarker, .pmkLinkMarker,
@@ -19,21 +19,19 @@ public final class MDMarkdownHider: NSObject {
         .pmkHashtagMarker, .mdMermaidCodeContent,
     ]
 
-    /// Bear: `attributesToSearchForHiding` (20 keys) — constructs whose full extent decides visibility.
+    /// `attributesToSearchForHiding` (20 keys) — constructs whose full extent decides visibility.
     public static let attributesToSearchForHiding: [NSAttributedString.Key] = [
         .pmkStrong, .pmkEmphasis, .pmkCode, .pmkMathSpan, .pmkMathBlock, .pmkHighlighter, .pmkLink, .pmkAutoLinkURL,
         .pmkAutoLinkEmail, .pmkStrikethrough, .pmkUnderline, .pmkFencedCode, .pmkFootNote, .pmkReference,
         .pmkReferenceDefinition, .pmkWikiLink, .pmkHeading, .pmkEscape, .pmkHardLinebreak, .pmkHashtag,
     ]
 
-    /// Bear: `attributesPreventingHiding`
     public static let attributesPreventingHiding: [NSAttributedString.Key] = [.mdPreventMarkdownHiding, .mdSearchResultBackgroundColor]
 
     public override init() { super.init() }
 
     // MARK: Entry points
 
-    /// Bear: `showHideMarkdownInTextView:oldSelectionRange:newSelectionRange:`
     public func showHideMarkdown(in textView: NSTextView, oldSelectionRange old: NSRange, newSelectionRange new: NSRange) {
         guard let storage = textView.textStorage else { return }
         let hideRanges = rangesToCheckForMarkdownHiding(for: old, in: storage)
@@ -46,7 +44,7 @@ public final class MDMarkdownHider: NSObject {
         if changed { textView.needsDisplay = true }
     }
 
-    /// Bear: `hideMarkdownInRange:inAttributedString:` — returns YES when something changed.
+    /// Returns YES when something changed.
     @discardableResult
     public func hideMarkdown(in range: NSRange, in s: NSMutableAttributedString) -> Bool {
         var changed = false
@@ -95,7 +93,7 @@ public final class MDMarkdownHider: NSObject {
                 return
             }
             att.updateAttachmentImage()
-            // Bear adds then removes a dummy attribute to force layout to notice the attachment change.
+            // Add then remove a dummy attribute to force layout to notice the attachment change.
             s.addAttribute(.mdTMP, value: 1, range: runRange)
             s.removeAttribute(.mdTMP, range: runRange)
             changed = true
@@ -103,7 +101,6 @@ public final class MDMarkdownHider: NSObject {
         return changed
     }
 
-    /// Bear: `showMarkdownInRange:inAttributedString:`
     @discardableResult
     public func showMarkdown(in range: NSRange, in s: NSMutableAttributedString) -> Bool {
         let r = NSIntersectionRange(range, NSRange(location: 0, length: s.length))
@@ -122,7 +119,7 @@ public final class MDMarkdownHider: NSObject {
         return changed
     }
 
-    /// Bear: `removeHidableMarkdownInRange:inAttributedString:` — deletes marker characters
+    /// Deletes marker characters
     /// (used when exporting "plain" text).
     public func removeHidableMarkdown(in range: NSRange, in s: NSMutableAttributedString) {
         let ns = s.string as NSString
@@ -150,13 +147,12 @@ public final class MDMarkdownHider: NSObject {
 
     // MARK: Range helpers
 
-    /// Bear: `rangeToCheckForMarkdownShowingForRange:inAttributedString:`
     public func rangeToCheckForMarkdownShowing(for range: NSRange, in s: NSAttributedString) -> NSRange {
         guard s.length != 0, range.location != NSNotFound else { return NSNotFoundRange }
         return extendedRange(for: normalizedRange(for: range, in: s), in: s)
     }
 
-    /// Bear: `rangesToCheckForMarkdownHidingForRange:inAttributedString:` — the extended range minus
+    /// The extended range minus
     /// the parts that must stay visible (search results, explicit prevention).
     public func rangesToCheckForMarkdownHiding(for range: NSRange, in s: NSAttributedString) -> [NSRange] {
         guard s.length != 0, range.location != NSNotFound else { return [] }
@@ -172,7 +168,7 @@ public final class MDMarkdownHider: NSObject {
         return rangesRemoving(preventing, from: extended)
     }
 
-    /// Bear: `normalizedRangesForRanges:` — merges overlapping/adjacent ranges, sorted.
+    /// Merges overlapping/adjacent ranges, sorted.
     public func normalizedRanges(_ ranges: [NSRange]) -> [NSRange] {
         var result: [NSRange] = []
         for r in ranges {
@@ -191,7 +187,6 @@ public final class MDMarkdownHider: NSObject {
         return result.sorted { $0.location < $1.location }
     }
 
-    /// Bear: `rangesRemovingRanges:fromRange:`
     public func rangesRemoving(_ ranges: [NSRange], from range: NSRange) -> [NSRange] {
         var out: [NSRange] = []
         var loc = range.location
@@ -211,13 +206,12 @@ public final class MDMarkdownHider: NSObject {
         return out
     }
 
-    /// Bear: `normalizedRangeForRange:inAttributedString:`
     public func normalizedRange(for range: NSRange, in s: NSAttributedString) -> NSRange {
         if range.length == 0 && range.location == s.length { return range }
         return NSIntersectionRange(range, NSRange(location: 0, length: s.length))
     }
 
-    /// Bear: `extendedRangeForRange:inAttributedString:` — grows the range to the full extent of
+    /// Grows the range to the full extent of
     /// every construct touching its ends (except across a newline outside code/math), then to the
     /// paragraphs of enclosing math blocks and mermaid code.
     public func extendedRange(for range: NSRange, in s: NSAttributedString) -> NSRange {

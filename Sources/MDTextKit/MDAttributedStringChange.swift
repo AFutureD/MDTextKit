@@ -1,6 +1,6 @@
 import AppKit
 
-/// Bear: `MDAttributedStringChange` — one recorded edit, in both the attributed
+/// One recorded edit, in both the attributed
 /// (attachment-bearing) and the plain markdown coordinate spaces.
 public final class MDAttributedStringChange: NSObject {
     public var oldPlainRange = NSRange()
@@ -19,7 +19,7 @@ public final class MDAttributedStringChange: NSObject {
     }
 }
 
-/// Bear: `MDAttributedStringChangeTracker`. Records every character / attribute edit
+/// `MDAttributedStringChangeTracker`. Records every character / attribute edit
 /// made on the text storage between two `processEditing` passes, plus the attachments
 /// that were added or removed (net of each other).
 public final class MDAttributedStringChangeTracker: NSObject {
@@ -37,7 +37,6 @@ public final class MDAttributedStringChangeTracker: NSObject {
         attachmentRemovedOrder.removeAllObjects()
     }
 
-    /// Bear: `trackReplaceCharactersInRange:inAttributedString:withString:`
     public func trackReplaceCharacters(in range: NSRange, in attributedString: NSAttributedString, with string: String) {
         let change = MDAttributedStringChange()
         change.oldPlainRange = attributedString.stringRange(fromAttributedStringRange: range)
@@ -58,7 +57,7 @@ public final class MDAttributedStringChangeTracker: NSObject {
         }
     }
 
-    /// Bear: `trackSetAttributes:inAttributedString:range:` — an attachment being set on an
+    /// An attachment being set on an
     /// attachment character is folded into the last recorded change so the plain range stays right.
     public func trackSetAttributes(_ attrs: [NSAttributedString.Key: Any], in attributedString: NSAttributedString, range: NSRange) {
         guard range.length < 2, range.location < attributedString.length else { return }
@@ -88,7 +87,7 @@ public final class MDAttributedStringChangeTracker: NSObject {
         }
     }
 
-    /// Bear: `addedAttachments` — added more times than removed, in insertion order.
+    /// Added more times than removed, in insertion order.
     public var addedAttachments: [NSTextAttachment] {
         attachmentAddedOrder.array.compactMap { obj -> NSTextAttachment? in
             guard let a = obj as? NSTextAttachment else { return nil }
@@ -96,7 +95,6 @@ public final class MDAttributedStringChangeTracker: NSObject {
         }
     }
 
-    /// Bear: `removedAttachments`
     public var removedAttachments: [NSTextAttachment] {
         attachmentRemovedOrder.array.compactMap { obj -> NSTextAttachment? in
             guard let a = obj as? NSTextAttachment else { return nil }

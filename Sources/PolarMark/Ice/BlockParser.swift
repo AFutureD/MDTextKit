@@ -1,6 +1,6 @@
 import Foundation
 
-/// Bear: `Ice::BlockParser` + `Ice::BlockRuleMap`.
+/// `Ice::BlockParser` + `Ice::BlockRuleMap`.
 /// Line-oriented container parser. Supported blocks: ATX headings, thematic
 /// breaks, fenced code, blockquotes (nested), ordered / unordered / task lists
 /// (nested by indentation), paragraphs.
@@ -219,7 +219,7 @@ struct BlockParser {
         return cells
     }
 
-    /// Bear alignment values: left 0, center 1, right 2, natural 4.
+    /// Alignment values: left 0, center 1, right 2, natural 4.
     func tableAlignment(ofDelimiter c: TableCellRange) -> Int {
         let left = text[c.content.location] == CU.colon
         let right = text[NSMaxRange(c.content) - 1] == CU.colon && c.content.length > 1
@@ -233,7 +233,7 @@ struct BlockParser {
 
     static let calloutTypeNames = ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"]
 
-    /// Bear (`Ice::Block::Callout::match`): the first line of a blockquote starting with `[!TYPE]` (case-insensitive,
+    /// The first line of a blockquote starting with `[!TYPE]` (case-insensitive,
     /// local indent < 4, followed by space / tab / end of line) turns the quote into a callout.
     private func recognizeCallout(in quote: PMKASTNode, firstLine line: Line) {
         let p = quotePrefix(of: line)
@@ -273,7 +273,7 @@ struct BlockParser {
         quote.children.insert(head, at: 0)
     }
 
-    /// Bear: `foldMarkerMarkdown` = `<!-- {"fold":true} -->` (22 UTF-16 units).
+    /// `foldMarkerMarkdown` = `<!-- {"fold":true} -->` (22 UTF-16 units).
     public static let foldMarkerText: [UInt16] = Array("<!-- {\"fold\":true} -->".utf16)
 
     /// Range of the fold comment when it ends exactly at `lineEnd` and starts at or after `minStart`.
@@ -333,7 +333,7 @@ struct BlockParser {
                 node.level = level
                 node.markerRanges = [NSRange(location: markerStart, length: markerEnd - markerStart)]
                 var contentEnd = line.end
-                // Bear (Ice::Inline::Folding): the fold comment must be the last thing before the line ending.
+                // The fold comment must be the last thing before the line ending.
                 if let fm = foldMarkerRange(lineEnd: line.end, minStart: markerEnd) {
                     let marker = PMKASTNode(type: .foldMarker, range: fm)
                     node.add(marker)

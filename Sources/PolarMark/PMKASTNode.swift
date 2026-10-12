@@ -12,12 +12,12 @@ public enum PMKNodeType: String {
     // inline
     case strong, emphasis, strikethrough, underline, highlighter, code
     case link, image, hashtag, autolink, escape, hardLineBreak
-    case table, tableRow, tableCell   // Bear: Ice table (0x28) / rows / cells (0x2e); row 1 is the delimiter row
-    case calloutHead     // Bear: Ice callout_head (0x88) — `[!NOTE]`-style first line of a blockquote; level = callout type 0…4
-    case foldMarker      // Bear: Ice fold_marker (0x87) — the `<!-- {"fold":true} -->` comment ending a foldable head line
+    case table, tableRow, tableCell   // table / rows / cells; row 1 is the delimiter row
+    case calloutHead     // `[!NOTE]`-style first line of a blockquote; level = callout type 0…4
+    case foldMarker      // the `<!-- {"fold":true} -->` comment ending a foldable head line
 }
 
-/// Bear: `PMKASTNode` (ObjC facade over `Ice::Node`).
+/// `PMKASTNode` (ObjC facade over `Ice::Node`).
 /// Ranges are UTF-16 offsets into the markdown string, so they can be used
 /// directly as `NSRange` on the text storage.
 public final class PMKASTNode {

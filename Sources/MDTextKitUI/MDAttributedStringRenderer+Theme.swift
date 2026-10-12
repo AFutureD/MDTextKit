@@ -2,40 +2,39 @@ import AppKit
 import MDTextKit
 import SFThemeKit
 
-// Bear: `extension MDAttributedStringRenderer` in MDTextKitUI (Swift) — recovered from the
+// `extension MDAttributedStringRenderer` in MDTextKitUI (Swift) — recovered from the
 // disassembly of `styleObject(with:)` and its metric helpers.
 public extension MDAttributedStringRenderer {
 
-    /// Bear: `baseFontSizeForThemeManager(_:)` — "editor.text size"
+    /// "editor.text size"
     func baseFontSize(for tm: SFThemeManager) -> CGFloat { tm.number(forKey: "editor.text size", default: 0) }
 
-    /// Bear: `baseFontForThemeManager(_:)` — "editor.text font" at the base size.
+    /// "editor.text font" at the base size.
     func baseFont(for tm: SFThemeManager) -> NSFont { tm.font(forKey: "editor.text font", size: baseFontSize(for: tm)) }
 
-    /// Bear: `tabSizeForFontSize(_:)` = ceil(size × 2.2)
+    /// `tabSizeForFontSize(_:)` = ceil(size × 2.2)
     func tabSize(forFontSize size: CGFloat) -> CGFloat { ceil(size * 2.2) }
-    /// Bear: `columnSizeForFontSize(_:)` = ceil(tab × 2/3)
+    /// `columnSizeForFontSize(_:)` = ceil(tab × 2/3)
     func columnSize(forFontSize size: CGFloat) -> CGFloat { ceil(tabSize(forFontSize: size) * 0.6666666666666666) }
-    /// Bear: `gutterSizeForFontSize(_:)` = ceil(tab × 1/3)
+    /// `gutterSizeForFontSize(_:)` = ceil(tab × 1/3)
     func gutterSize(forFontSize size: CGFloat) -> CGFloat { ceil(tabSize(forFontSize: size) * 0.3333333333333333) }
-    /// Bear: `pointSizeForFontSize(_:)` → `NSFont.basePointSizeForFontSize:`
+    /// `pointSizeForFontSize(_:)` → `NSFont.basePointSizeForFontSize:`
     func pointSize(forFontSize size: CGFloat) -> CGFloat { NSFont.basePointSize(forFontSize: size) }
-    /// Bear: `lineWidthForForThemeManager(_:)` = size × ("editor.line width multiplier" or 48)
+    /// `lineWidthForForThemeManager(_:)` = size × ("editor.line width multiplier" or 48)
     func lineWidth(for tm: SFThemeManager) -> CGFloat { baseFontSize(for: tm) * tm.number(forKey: "editor.line width multiplier", default: 48) }
 
-    /// Bear: `codeFontSizeMultiplierForThemeManager(_:)` — matches the code font's x-height/cap-height to the body font.
+    /// Matches the code font's x-height/cap-height to the body font.
     func codeFontSizeMultiplier(for tm: SFThemeManager) -> CGFloat {
         let base = baseFont(for: tm)
         let code = tm.font(forKey: "editor.code.font", size: base.pointSize)
         return ((base.xHeight / code.xHeight) + (base.capHeight / code.capHeight)) * 0.5
     }
 
-    /// Bear: `codeFontForThemeManager(_:)`
     func codeFont(for tm: SFThemeManager) -> NSFont {
         tm.font(forKey: "editor.code.font", size: baseFontSize(for: tm) * codeFontSizeMultiplier(for: tm))
     }
 
-    /// Bear: `baseParagraphStyleForThemeManager(_:)` — centered line height, 19 tab stops, indent = default paragraph indent.
+    /// Centered line height, 19 tab stops, indent = default paragraph indent.
     func baseParagraphStyle(for tm: SFThemeManager) -> NSParagraphStyle {
         let p = NSMutableParagraphStyle()
         let lineHeightMultiplier = tm.number(forKey: "editor.line height multiplier", default: 0)
@@ -57,7 +56,7 @@ public extension MDAttributedStringRenderer {
         return p
     }
 
-    /// Bear: `bodyParagraphIndent` setter used by table cell editors — zero indents on every styler and on the
+    /// `bodyParagraphIndent` setter used by table cell editors — zero indents on every styler and on the
     /// body paragraph style (tab stops restart at the new indent).
     func setBodyParagraphIndent(_ indent: CGFloat) {
         for styler in textStylers { styler.defaultParagraphIndent = indent }
@@ -77,12 +76,11 @@ public extension MDAttributedStringRenderer {
     var gutterSize: CGFloat { bodyStyler.gutterSize }
     var defaultPointsize: CGFloat { bodyStyler.basePointSize }
     var textContainerMaxWidth: CGFloat { bodyStyler.maxTextContainerWidth }
-    /// Bear: `textContainerMinInset()` = 23
+    /// `textContainerMinInset()` = 23
     var textContainerMinInset: CGFloat { 23 }
     var defaultLineSpacing: CGFloat { (bodyStyler.bodyTextAttributes[.paragraphStyle] as? NSParagraphStyle)?.lineSpacing ?? 0 }
     var defaultTextAttributes: [NSAttributedString.Key: Any] { bodyStyler.bodyTextAttributes }
 
-    /// Bear: `styleObject(with:)`
     func styleObject(with tm: SFThemeManager) {
         for styler in textStylers { styler.cache.removeAllObjects() }
         let markerColor = tm.color(forKey: "editor.marker color", default: .black)
@@ -133,10 +131,10 @@ public extension MDAttributedStringRenderer {
         unorderedListStyler.taskFillColor = nil
         unorderedListStyler.completedTaskTextColor = tm.color(forKey: "editor.text light color", default: markerColor)
 
-        // blockquote: list marker colour for the bar; the text keeps the body face (Bear renders quotes in the
+        // blockquote: list marker colour for the bar; the text keeps the body face (quotes are rendered in the
         // regular text font even though otool labels the key literal "editor.headers.font").
         blockQuoteStyler.markerColor = tm.color(forKey: "editor.list marker color", default: markerColor)
-        // Bear (theme apply @0xb0d74): the callout head line uses the headers font; colours derive from the
+        // The callout head line uses the headers font; colours derive from the
         // highlighter palette through HSL (blue→NOTE, green→TIP, purple→IMPORTANT, yellow→WARNING, red→CAUTION).
         blockQuoteStyler.textAttributes = [.font: tm.font(forKey: "editor.headers.font", size: defaultFontSize)]
         blockQuoteStyler.calloutLabels = [0: "Note", 1: "Tip", 2: "Important", 3: "Warning", 4: "Caution"]
@@ -179,13 +177,13 @@ public extension MDAttributedStringRenderer {
         strikethroughStyler.textColor = lightColor
 
         // tags
-        // Bear (MDTextKitUI theme setup): fold pill colours.
+        // Fold pill colours.
         foldTextStyler.backgroundColor = tm.color(forKey: "base.background tertiary color", default: .lightGray).withAlphaComponent(0.6)
         foldTextStyler.textColor = tm.color(forKey: "base.text secondary color", default: .darkGray).withAlphaComponent(0.7)
         hashtagStyler.textColor = tm.color(forKey: "editor.tag.text color", default: textColor)
         hashtagStyler.backgroundColor = tm.color(forKey: "editor.tag.background color", default: markerColor)
         hashtagStyler.hashColor = tm.color(forKey: "editor.tag.marker color", default: markerColor)
-        // Bear (BearCore) supplies the tag icon: the "number" SF Symbol in the tag marker colour.
+        // The host supplies the tag icon: the "number" SF Symbol in the tag marker colour.
         let tagIconColor = hashtagStyler.hashColor
         hashtagStyler.tagIconBlock = { _ in
             NSImage(systemSymbolName: "number", accessibilityDescription: nil)?.tinted(with: tagIconColor)
@@ -196,7 +194,6 @@ public extension MDAttributedStringRenderer {
 }
 
 public extension MDTextContainer {
-    /// Bear: `styleWith(renderer:themeManager:)`
     func style(with renderer: MDAttributedStringRenderer, themeManager: SFThemeManager) {
         maxColumSize = renderer.textContainerMaxWidth
         minInset = renderer.textContainerMinInset
@@ -204,7 +201,6 @@ public extension MDTextContainer {
 }
 
 public extension MDLayoutManager {
-    /// Bear: `styleWith(renderer:themeManager:)`
     func style(with renderer: MDAttributedStringRenderer, themeManager tm: SFThemeManager) {
         if let f = renderer.defaultTextAttributes[.font] as? NSFont { defaultFont = f }
         defaultLineSpacing = renderer.defaultLineSpacing
@@ -232,7 +228,7 @@ extension NSImage {
 }
 
 
-/// Bear: callout colour derivation (MDTextKitUI, `styleObject` for the blockquote styler).
+/// Callout colour derivation (MDTextKitUI, `styleObject` for the blockquote styler).
 enum MDCalloutPalette {
     static func colors(themeManager tm: SFThemeManager) -> [Int: [String: NSColor]] {
         let white = NSColor(red: 1, green: 1, blue: 1, alpha: 1)
@@ -273,7 +269,7 @@ enum MDCalloutPalette {
         return out
     }
 
-    /// Bear HSL helper: returns (h in degrees, s %, l %, alpha).
+    /// HSL helper: returns (h in degrees, s %, l %, alpha).
     static func hsl(_ color: NSColor) -> (CGFloat, CGFloat, CGFloat, CGFloat) {
         let c = color.usingColorSpace(.sRGB) ?? color
         var hue: CGFloat = 0, sB: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
@@ -292,7 +288,7 @@ enum MDCalloutPalette {
 }
 
 extension NSColor {
-    /// Bear: `isLightColor` — perceived luminance above one half.
+    /// Perceived luminance above one half.
     var isLightColor: Bool {
         let c = usingColorSpace(.sRGB) ?? self
         return 0.299 * c.redComponent + 0.587 * c.greenComponent + 0.114 * c.blueComponent > 0.5

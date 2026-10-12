@@ -4,7 +4,7 @@ import AppKit
 @testable import MDTextKitUI
 @testable import SFThemeKit
 
-/// Debug helper: dumps line fragments of the sample note so they can be compared with Bear's zoomed captures.
+/// Debug helper: dumps line fragments of the sample note so they can be compared with reference captures.
 final class MDLayoutDumpTests: XCTestCase {
     func testDumpSampleLayout() throws {
         guard ProcessInfo.processInfo.environment["MD_DUMP"] != nil else { return }

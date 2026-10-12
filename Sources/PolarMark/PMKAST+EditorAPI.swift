@@ -1,12 +1,12 @@
 import Foundation
 
-/// Bear's ObjC `PMKAST` facade selectors, mapped onto the Swift operations. Every method returns the
+/// The ObjC-style `PMKAST` facade selectors, mapped onto the Swift operations. Every method returns the
 /// array of `PMKASTOperationResult` the editor controller applies through `applyASTOperationResults`.
 /// Operations whose C++ implementation (`PMK::Operation*`) is not ported yet return no results, which
 /// the controller treats as "let the text view do the default thing".
 public extension PMKAST {
 
-    /// Bear: `PMKInlineStyle` indexes used by `toggleInlineStyle:selectionRange:style:`.
+    /// `PMKInlineStyle` indexes used by `toggleInlineStyle:selectionRange:style:`.
     static func inlineStyleKind(forStyleIndex index: Int) -> PMKInlineStyleKind? {
         switch index {
         case 0: return .strong
@@ -19,7 +19,7 @@ public extension PMKAST {
         }
     }
 
-    /// Bear: `PMKBlockStyle` indexes used by `toggleBlockStyle:selectionRange:style:`.
+    /// `PMKBlockStyle` indexes used by `toggleBlockStyle:selectionRange:style:`.
     static func blockStyleKind(forStyleIndex index: Int) -> PMKBlockStyleKind? {
         switch index {
         case 0...5: return .heading(index + 1)
@@ -74,7 +74,7 @@ public extension PMKAST {
     func moveLinesUp(in range: NSRange, selectionRange: NSRange) -> [PMKASTOperationResult] { [] }
     func moveLinesDown(in range: NSRange, selectionRange: NSRange) -> [PMKASTOperationResult] { [] }
 
-    /// Bear: `renumberOrderedListInRange:selectionRange:` — runs after every parse over the reparsed range.
+    /// Runs after every parse over the reparsed range.
     func renumberOrderedList(in range: NSRange, selectionRange: NSRange) -> [PMKASTOperationResult] {
         var seen = Set<Int>()
         var results: [PMKASTOperationResult] = []
@@ -91,7 +91,7 @@ public extension PMKAST {
     }
 
     func normalizeIndentation(in range: NSRange, selectionRange: NSRange) -> [PMKASTOperationResult] { [] }
-    /// Bear: `NormalizeCallouts` — a note that starts with a callout gets a leading newline.
+    /// A note that starts with a callout gets a leading newline.
     func normalizeCallout(in range: NSRange, selectionRange: NSRange) -> [PMKASTOperationResult] {
         guard let first = rootNode.children.first, first.type == .blockquote, first.calloutType >= 0, first.range.location == 0 else { return [] }
         return [PMKASTOperationResult(replacementRange: NSRange(location: 0, length: 0), replacementString: "\n",

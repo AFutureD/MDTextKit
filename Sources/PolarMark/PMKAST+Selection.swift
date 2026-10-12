@@ -1,6 +1,6 @@
 import Foundation
 
-/// Bear: `PMK::Correction::SelectionCorrection` and `PMK::Operation::SelectAllText`.
+/// `PMK::Correction::SelectionCorrection` and `PMK::Operation::SelectAllText`.
 extension PMKAST {
     private struct Marker { let node: PMKASTNode; let range: NSRange; let opening: Bool; let pair: NSRange? }
 
@@ -16,7 +16,7 @@ extension PMKAST {
         return out.sorted { $0.range.location < $1.range.location }
     }
 
-    /// Bear: `selectionCorrectionIn:replacementString:selectionRange:` — a selection whose ends leave the block of
+    /// A selection whose ends leave the block of
     /// the current selection never splits a pair of inline markers: paired markers are taken whole or left out.
     public func selectionCorrection(in current: NSRange, replacementString: String?, selectionRange proposed: NSRange) -> [PMKASTOperationResult] {
         guard proposed.length > 0, (replacementString ?? "").isEmpty else { return [] }
@@ -49,7 +49,7 @@ extension PMKAST {
         return [PMKASTOperationResult(replacementRange: NSRange(location: fixed.location, length: 0), replacementString: "", proposedSelection: fixed)]
     }
 
-    /// Bear: `selectAllTextIn:selectionRange:` — inside a fenced code (or math) block ⌘A first selects the block
+    /// Inside a fenced code (or math) block ⌘A first selects the block
     /// content; otherwise everything.
     public func selectAllText(in range: NSRange, selectionRange sel: NSRange) -> [PMKASTOperationResult] {
         let s = clamp(sel)

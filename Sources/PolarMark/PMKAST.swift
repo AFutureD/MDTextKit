@@ -1,8 +1,8 @@
 import Foundation
 
-/// Bear: `PMKAST`. Owns the markdown text, the parse tree, and produces the
+/// `PMKAST`. Owns the markdown text, the parse tree, and produces the
 /// annotated string. `replaceRange(_:withMarkdown:)` is incremental in the
-/// sense Bear's `Ice::ReparseRanges` is: the text is re-parsed, and the range
+/// sense `Ice::ReparseRanges` is: the text is re-parsed, and the range
 /// of blocks whose structure actually changed is reported so MDTextKit only
 /// re-styles that region.
 public final class PMKAST {
@@ -22,7 +22,7 @@ public final class PMKAST {
         self.currentReparsedRange = NSRange(location: 0, length: utf16.count)
     }
 
-    /// Bear: `parseInlinesOnly` — set by `MDAttributedStringRenderer.setStyleInlinesOnly:`.
+    /// Set by `MDAttributedStringRenderer.setStyleInlinesOnly:`.
     public var parseInlinesOnly = false
 
     public var markdown: String { String(utf16CodeUnits: utf16, count: utf16.count) }
@@ -48,10 +48,10 @@ public final class PMKAST {
         reparseAll()
     }
 
-    /// Bear: `-[PMKAST reset]` — empties the document.
+    /// Empties the document.
     public func reset() { replaceAll(withMarkdown: "") }
 
-    /// Bear: `+[PMKAST percentEscapedURL:]` — percent-escapes a link destination the way the
+    /// Percent-escapes a link destination the way the
     /// parser accepts it (spaces and non-URL characters), leaving existing escapes alone.
     public static func percentEscapedURL(_ string: String) -> String {
         if string.removingPercentEncoding != string { return string }
@@ -67,7 +67,7 @@ public final class PMKAST {
     }
 
     /// Replaces `range` with `markdown`, re-parses, and returns the range (in the
-    /// new text) that must be re-styled. Bear: `-[PMKAST replaceRange:withMarkdown:]`
+    /// new text) that must be re-styled.
     /// followed by `-[MDTextStorage validateAndSetReparsedRange:...]`.
     @discardableResult
     public func replaceRange(_ range: NSRange, withMarkdown markdown: String) -> NSRange {
@@ -185,7 +185,7 @@ public final class PMKAST {
         return nil
     }
 
-    /// Bear: `hasFoldableContentAtIndex:` → `isContentHeadOfFoldable(nodeAtOffset(i).parentBlock)`.
+    /// `hasFoldableContentAtIndex:` → `isContentHeadOfFoldable(nodeAtOffset(i).parentBlock)`.
     public func hasFoldableContent(at index: Int) -> Bool {
         guard let b = blockNode(at: index) else { return false }
         return isContentHeadOfFoldable(b)
@@ -200,7 +200,7 @@ public final class PMKAST {
 
     // MARK: - Annotation
 
-    /// Full annotated string (cached per parse). Bear: `-[PMKAST annotatedString]`.
+    /// Full annotated string (cached per parse).
     public func annotatedString() -> NSAttributedString {
         lock.lock(); defer { lock.unlock() }
         if let c = annotatedCache { return c }
@@ -209,7 +209,6 @@ public final class PMKAST {
         return s
     }
 
-    /// Bear: `-[PMKAST annotatedStringForStringRange:]`.
     public func annotatedString(forStringRange range: NSRange) -> NSAttributedString {
         annotatedString().attributedSubstring(from: clamp(range))
     }
@@ -217,7 +216,7 @@ public final class PMKAST {
     public func annotatedString(forRange range: NSRange) -> NSAttributedString { annotatedString(forStringRange: range) }
 }
 
-/// Converts the tree into an NSAttributedString carrying PMK* attributes using Bear's value
+/// Converts the tree into an NSAttributedString carrying PMK* attributes using the value
 /// conventions (recovered from the decompiled `NSAttributedString(PolarMark)` category):
 ///   PMKHeading = level, PMKHeadingMarker = 1 ATX / 2 SETEXT
 ///   PMKList / PMKListMarker = NSNumber(listType 1 unordered / 2 ordered / 3 blockquote)
@@ -238,7 +237,7 @@ enum Annotator {
                 add(key, NSNumber(value: i == 0 ? PMKMarkerValue.open.rawValue : PMKMarkerValue.close.rawValue), m)
             }
         }
-        /// Bear's four link markers: "[" open, "]" close, "(" open, ")" close. The parser records
+        /// The four link markers: "[" open, "]" close, "(" open, ")" close. The parser records
         /// two runs ("[" / "![" and "](destination)"), which are split here; returns the destination range.
         func linkMarkers(_ key: NSAttributedString.Key, _ n: PMKASTNode) -> NSRange? {
             guard n.markerRanges.count == 2 else { return nil }
@@ -267,7 +266,7 @@ enum Annotator {
                 for m in n.markerRanges {
                     add(.pmkHeadingMarker, NSNumber(value: PMKHeadingMarkerValue.atx.rawValue), m)
                 }
-                // Bear (PMKAST.c case 5): PMKFoldable on the ATX marker when the heading is a foldable content head.
+                // PMKFoldable on the ATX marker when the heading is a foldable content head.
                 if let m = n.markerRanges.first, ast.isContentHeadOfFoldable(n) { add(.pmkFoldable, NSNumber(value: true), m) }
 
             case .foldMarker:
@@ -275,12 +274,12 @@ enum Annotator {
                     add(.pmkFoldMarker, NSNumber(value: 1), n.range)
                     add(.pmkFold, NSNumber(value: 1), ast.foldRange(forMarker: n))
                 } else {
-                    // Bear: a fold comment that does not qualify stays raw HTML with PMKMetadata {"fold": true}.
+                    // A fold comment that does not qualify stays raw HTML with PMKMetadata {"fold": true}.
                     add(.pmkHTMLInline, NSNumber(value: 1), n.range)
                 }
 
             case .thematicBreak:
-                // Bear: the PMKThematicBreak run never includes the paragraph's newline (the hr attachment
+                // The PMKThematicBreak run never includes the paragraph's newline (the hr attachment
                 // only replaces the marker characters, so the paragraph keeps its own line).
                 var tb = n.range
                 while tb.length > 0, ns.character(at: NSMaxRange(tb) - 1) == 0x0A { tb.length -= 1 }
@@ -299,7 +298,7 @@ enum Annotator {
                 openClose(.pmkFencedCodeMarker, n)
 
             case .table:
-                // Bear (PMKAST.c ~1290): PMKTable = {RowCount (without the delimiter row), ColumnCount} over the block
+                // PMKTable = {RowCount (without the delimiter row), ColumnCount} over the block
                 // minus its trailing line break.
                 var tr = n.range
                 while tr.length > 0, ns.character(at: NSMaxRange(tr) - 1) == 0x0A { tr.length -= 1 }
@@ -314,7 +313,7 @@ enum Annotator {
                 if n.contentRange.length > 0 { add(.pmkTableCellContent, NSNumber(value: n.level), n.contentRange) }
 
             case .calloutHead:
-                // Bear (PMKAST.c cases 0x88 / 0x89): PMKCallout from the quote's first ">" through the head line,
+                // PMKCallout from the quote's first ">" through the head line,
                 // PMKCalloutMarker on "[!TYPE]", PMKCalloutTitle on the trimmed title when present.
                 if let quote = n.parent {
                     let start = quote.markerRanges.first?.location ?? n.range.location
@@ -328,7 +327,7 @@ enum Annotator {
             case .blockquote:
                 if n.level == 1 { add(.pmkBlockquote, NSNumber(value: n.level), n.range) }
                 // one PMKBlockquoteItem per line, marker = "> " of this level on that line
-                // Bear: a nested quote's item starts at its own "> " marker, not at the line start, so the
+                // A nested quote's item starts at its own "> " marker, not at the line start, so the
                 // outer marker stays part of the outer item.
                 for (idx, line) in lineRanges(in: n.range).enumerated() {
                     let info = PMKListInfo(listType: PMKListInfo.blockquoteType, subType: n.calloutType >= 0 ? 6 : 0, taskType: 0, level: n.level - 1, itemIndex: idx)
@@ -361,10 +360,10 @@ enum Annotator {
                 }
                 add(.pmkListItem, info, n.range)
                 if let m = n.markerRanges.first { add(.pmkListMarker, NSNumber(value: type), m) }
-                // Bear (PMKAST.c case 0x24): PMKFoldable on the list marker when the item's first block is a foldable head.
+                // PMKFoldable on the list marker when the item's first block is a foldable head.
                 if let m = n.markerRanges.first, ast.isContentHeadOfFoldable(n) { add(.pmkFoldable, NSNumber(value: true), m) }
                 if let ir = n.indentRange, ir.length > 0 {
-                    // indent units: a tab counts as one unit, every two spaces count as one unit (Bear's normalizeIndentation)
+                    // indent units: a tab counts as one unit, every two spaces count as one unit (normalizeIndentation)
                     let text = ns.substring(with: ir)
                     let tabs = text.filter { $0 == "\t" }.count
                     let spaces = text.filter { $0 == " " }.count
@@ -415,7 +414,7 @@ enum Annotator {
                 }
 
             case .escape:
-                // Bear: PMKEscape + PMKEscapeMarker only on the backslash
+                // PMKEscape + PMKEscapeMarker only on the backslash
                 if let m = n.markerRanges.first {
                     add(.pmkEscape, NSNumber(value: 1), m)
                     add(.pmkEscapeMarker, NSNumber(value: PMKMarkerValue.open.rawValue), m)

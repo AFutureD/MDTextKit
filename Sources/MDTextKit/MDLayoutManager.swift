@@ -1,7 +1,6 @@
 import AppKit
 import PolarMark
 
-/// Bear: `SFRectCollection`
 public final class SFRectCollection: NSObject {
     public var rects: [CGRect] = []
     public var selected = false
@@ -11,7 +10,7 @@ public final class SFRectCollection: NSObject {
     public var lastRect: CGRect { rects.last ?? .zero }
 }
 
-/// Bear: `MDTextContainer` — centers a column of at most `maxColumSize` points, never narrower than `minInset` insets.
+/// Centers a column of at most `maxColumSize` points, never narrower than `minInset` insets.
 public final class MDTextContainer: NSTextContainer {
     public var minInset: CGFloat = 0
     public var maxColumSize: CGFloat = 0
@@ -28,7 +27,7 @@ public final class MDTextContainer: NSTextContainer {
     public var currentColumnWidth: CGFloat { size.width - lineFragmentPadding * 2 }
 }
 
-/// Bear: `MDLayoutManager` — TextKit 1 layout manager that draws the block/inline backgrounds and keeps
+/// TextKit 1 layout manager that draws the block/inline backgrounds and keeps
 /// baselines steady around attachments.
 public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
     public var showBackgroundGrid = false
@@ -43,7 +42,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
     public var defaultFont: NSFont = .systemFont(ofSize: 14)
     public var selectionInactiveColor: NSColor = .unemphasizedSelectedContentBackgroundColor
 
-    // Bear's `MDLayoutManager.init` only resets `styledRange`; the delegate methods below are used by the
+    // `init` only resets `styledRange`; the delegate methods below are used by the
     // table attachment's layout manager (MDTextKitUI.MDLayoutManagerDelegate), not by the note editor.
     public override init() {
         super.init()
@@ -62,7 +61,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         rearrangeAttachmentsViews(forGlyphRange: glyphsToShow, at: origin)
     }
 
-    /// Bear: `drawBackgroundUnderSelectionForGlyphRange:atPoint:`
     public func drawBackgroundUnderSelection(forGlyphRange r: NSRange, at p: NSPoint) {
         if showBackgroundGrid { drawBackgroundGrid(forGlyphRange: r, at: p) }
         drawIndentedCodeBackground(forGlyphRange: r, at: p)
@@ -72,7 +70,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         drawTagsBackground(forGlyphRange: r, at: p)
     }
 
-    /// Bear: `drawBackgroundOverSelectionForGlyphRange:atPoint:`
     public func drawBackgroundOverSelection(forGlyphRange r: NSRange, at p: NSPoint) {
         drawSearchResultBackground(forGlyphRange: r, at: p)
         drawBlockQuoteBackground(forGlyphRange: r, at: p)
@@ -84,7 +81,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         drawBackgroundOverSelection(forGlyphRange: glyphsToShow, at: origin)
     }
 
-    /// Bear: `fillBackgroundRectArray:count:forCharacterRange:color:` — selection fill; view attachments and
+    /// Selection fill; view attachments and
     /// search results are left alone, inactive selection uses `selectionInactiveColor` at 50%.
     public override func fillBackgroundRectArray(_ rectArray: UnsafePointer<NSRect>, count rectCount: Int, forCharacterRange charRange: NSRange, color: NSColor) {
         guard let storage = mdStorage else { return }
@@ -99,7 +96,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
 
     // MARK: Attachments
 
-    /// Bear: `rangeOfTextAttachmentNearPoint:withDelta:`
     public func rangeOfTextAttachment(near point: CGPoint, withDelta delta: CGFloat) -> NSRange {
         guard let storage = mdStorage, let container = textContainers.first else { return NSNotFoundRange }
         let d = max(1, delta)
@@ -124,7 +120,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         return best
     }
 
-    /// Bear: `attachmentFrameForGlyphAtIndex:atPoint:`
     public func attachmentFrame(forGlyphAt index: Int, at origin: CGPoint) -> CGRect {
         let line = lineFragmentRect(forGlyphAt: index, effectiveRange: nil)
         let loc = location(forGlyphAt: index)
@@ -142,7 +137,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         rearrangeAttachmentsViews(forGlyphRange: g, at: origin)
     }
 
-    /// Bear: `rearrangeAttachmentsViewsForGlyphRange:atPoint:` — moves view-backed attachments to their glyph frames.
+    /// Moves view-backed attachments to their glyph frames.
     public func rearrangeAttachmentsViews(forGlyphRange range: NSRange, at origin: CGPoint) {
         guard origin.x >= 0, origin.y >= 0, !preventAttachmentViewFromRearranging, let storage = mdStorage else { return }
         let chars = characterRange(forGlyphRange: range, actualGlyphRange: nil)
@@ -161,7 +156,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
 
     // MARK: Line fragments / baselines
 
-    /// Bear: `layoutManager:shouldSetLineFragmentRect:lineFragmentUsedRect:baselineOffset:inTextContainer:forGlyphRange:`
     public func layoutManager(_ layoutManager: NSLayoutManager, shouldSetLineFragmentRect lineFragmentRect: UnsafeMutablePointer<NSRect>,
                               lineFragmentUsedRect: UnsafeMutablePointer<NSRect>, baselineOffset: UnsafeMutablePointer<CGFloat>,
                               in textContainer: NSTextContainer, forGlyphRange glyphRange: NSRange) -> Bool {
@@ -216,7 +210,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         return changed
     }
 
-    /// Bear: `fixedBaselineForBaselineOffset:lineFragment:forGlyphRange:` — keeps the baseline where the
+    /// Keeps the baseline where the
     /// paragraph's font puts it, so a tall attachment on the line doesn't push the text up.
     public func fixedBaseline(forBaselineOffset offset: CGFloat, lineFragment: CGRect, forGlyphRange glyphRange: NSRange) -> CGFloat {
         guard let storage = mdStorage, glyphRange.length > 0 else { return offset }
@@ -253,7 +247,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         }
     }
 
-    /// Bear: `drawIndentedCodeBackgroundForGlyphRange:atPoint:`
     public func drawIndentedCodeBackground(forGlyphRange range: NSRange, at origin: CGPoint) {
         guard let storage = mdStorage else { return }
         enumerateCharacters(.pmkIndentedCode, glyphRange: range) { _, run, container in
@@ -268,7 +261,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         }
     }
 
-    /// Bear: `drawFencedCodeBackgroundForGlyphRange:atPoint:` — trims trailing newlines/spaces/attachments, then draws.
+    /// Trims trailing newlines/spaces/attachments, then draws.
     public func drawFencedCodeBackground(forGlyphRange range: NSRange, at origin: CGPoint) {
         guard let storage = mdStorage else { return }
         let ns = storage.string as NSString
@@ -287,7 +280,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         }
     }
 
-    /// Bear: `drawInlineCodeBackgroundForGlyphRange:atPoint:`
     public func drawInlineCodeBackground(forGlyphRange range: NSRange, at origin: CGPoint) {
         guard let storage = mdStorage else { return }
         enumerateCharacters(.pmkCode, glyphRange: range) { _, run, container in
@@ -301,7 +293,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         }
     }
 
-    /// Bear: `drawTagsBackgroundForGlyphRange:atPoint:`
     public func drawTagsBackground(forGlyphRange range: NSRange, at origin: CGPoint) {
         enumerateCharacters(.mdTagBackgroundColor, glyphRange: range) { value, run, container in
             guard let color = value as? NSColor else { return }
@@ -315,7 +306,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         }
     }
 
-    /// Bear: `drawHighlighterBackgroundForGlyphRange:atPoint:`
     public func drawHighlighterBackground(forGlyphRange range: NSRange, at origin: CGPoint) {
         guard let storage = mdStorage else { return }
         enumerateCharacters(.mdHighlighterBackgroundColor, glyphRange: range) { value, run, container in
@@ -329,7 +319,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         }
     }
 
-    /// Bear: `drawSearchResultBackgroundForGlyphRange:atPoint:`
     public func drawSearchResultBackground(forGlyphRange range: NSRange, at origin: CGPoint) {
         guard let storage = mdStorage else { return }
         enumerateCharacters(.mdSearchResultBackgroundColor, glyphRange: range) { value, run, container in
@@ -343,7 +332,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         }
     }
 
-    /// Bear: `drawBlockQuoteBackgroundForGlyphRange:atPoint:` — one bar per blockquote *level* (listBlock of
+    /// One bar per blockquote *level* (listBlock of
     /// `enumerateBlockquoteInRange:options:listBlock:listItemBlock:`, item block nil). Even levels are filled,
     /// odd levels are drawn as an outline (`tbnz w21,#0` on the level argument); rect x/y floor, w/h round.
     public func drawBlockQuoteBackground(forGlyphRange range: NSRange, at origin: CGPoint) {
@@ -391,7 +380,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         }, listItemBlock: nil)
     }
 
-    /// Bear: callout branch of the blockquote background block — tinted box with border and a left ribbon.
+    /// Callout branch of the blockquote background block — tinted box with border and a left ribbon.
     private func drawCalloutBackground(levelRange: NSRange, markerRange: NSRange, colors: [String: NSColor], container: NSTextContainer, origin: CGPoint) {
         guard let storage = mdStorage else { return }
         let bg = colors["background"] ?? .clear, border = colors["border"] ?? .clear, ribbon = colors["ribbon"] ?? .clear
@@ -418,7 +407,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         NSBezierPath.path(roundedRect: CGRect(x: ribbonX, y: R.minY, width: stripe, height: R.height), byRounding: corners, radius: basePointSize * 3).fill()
     }
 
-    /// Bear: `drawBackgroundGridForGlyphRange:atPoint:` — debug column grid.
+    /// Debug column grid.
     public func drawBackgroundGrid(forGlyphRange range: NSRange, at origin: CGPoint) {
         guard let container = textContainer(forGlyphAt: range.location, effectiveRange: nil) else { return }
         let used = usedRect(for: container)
@@ -437,7 +426,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         }
     }
 
-    /// Bear: `drawBlockBackgroundForCharRange:atPoint:color:` — rounded block behind a fenced code / math block,
+    /// Rounded block behind a fenced code / math block,
     /// pulled left to the list bullet / attachment when the block sits inside a list item.
     public func drawBlockBackground(forCharRange range: NSRange, at origin: CGPoint, color: NSColor) {
         guard let storage = mdStorage else { return }
@@ -469,7 +458,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
 
     // MARK: Rect helpers
 
-    /// Bear: `rectArrayForInlineDrawingAtGlyphRange:inTextContainer:atPoint:` — a single-line run is clamped to the
+    /// A single-line run is clamped to the
     /// expected line height so taller glyphs do not inflate the pill.
     public func rectArrayForInlineDrawing(atGlyphRange range: NSRange, in container: NSTextContainer, at origin: CGPoint) -> [CGRect] {
         let rects = nonCollapsedRectArray(forGlyphRange: range, in: container, at: origin)
@@ -481,7 +470,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         return rects
     }
 
-    /// Bear: `bezierPathsForRectArray:borderWidth:cornerRadius:roundMiddlePaths:rtl:` — rounds the outer corners of
+    /// Rounds the outer corners of
     /// a multi-line run so the pill reads as one shape.
     public func bezierPaths(forRectArray rects: [CGRect], borderWidth: CGSize, cornerRadius: CGFloat, roundMiddlePaths: Bool, rtl: Bool) -> [NSBezierPath] {
         var paths: [NSBezierPath] = []
@@ -525,7 +514,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         return paths
     }
 
-    /// Bear: `rectArrayForGlyphRange:inTextContainer:atPoint:`
     public func rectArray(forGlyphRange range: NSRange, in container: NSTextContainer, at origin: CGPoint) -> [CGRect] {
         var out: [CGRect] = []
         enumerateEnclosingRects(forGlyphRange: range, withinSelectedGlyphRange: range, in: container) { rect, _ in
@@ -534,7 +522,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         return out
     }
 
-    /// Bear: `nonCollapsedRectArrayForGlyphRange:inTextContainer:atPoint:` — per line fragment, dropping the trailing newline glyph.
+    /// Per line fragment, dropping the trailing newline glyph.
     public func nonCollapsedRectArray(forGlyphRange range: NSRange, in container: NSTextContainer, at origin: CGPoint) -> [CGRect] {
         var out: [CGRect] = []
         guard let storage = mdStorage else { return out }
@@ -560,7 +548,6 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
         return c
     }
 
-    /// Bear: `isRangeAtTheStartOfTheTextColumn:`
     public func isRangeAtTheStartOfTheTextColumn(_ range: NSRange) -> Bool {
         guard range.location != 0, let storage = mdStorage else { return true }
         let prev = range.location - 1
@@ -585,7 +572,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
     }
 }
 
-/// Which corners to round — Bear uses UIRectCorner-style masks (topLeft 1, topRight 2, bottomLeft 4, bottomRight 8).
+/// Which corners to round — UIRectCorner-style masks (topLeft 1, topRight 2, bottomLeft 4, bottomRight 8).
 public struct RectCorners: OptionSet {
     public let rawValue: Int
     public init(rawValue: Int) { self.rawValue = rawValue }
@@ -596,7 +583,7 @@ public struct RectCorners: OptionSet {
 }
 
 public extension NSBezierPath {
-    /// Bear: `bezierPathWithRoundedRect:byRoundingCorners:cornerRadii:` (flipped coordinates: "top" is minY).
+    /// `bezierPathWithRoundedRect:byRoundingCorners:cornerRadii:` (flipped coordinates: "top" is minY).
     static func path(roundedRect rect: CGRect, byRounding corners: RectCorners, radius: CGFloat) -> NSBezierPath {
         let r = min(radius, min(rect.width, rect.height) / 2)
         let p = NSBezierPath()

@@ -1,6 +1,6 @@
 import AppKit
 
-/// Bear: `MDTextKitStyleKit` — PaintCode-style vector drawing for the marker icons.
+/// PaintCode-style vector drawing for the marker icons.
 /// The bezier coordinates are taken from the decompiled routines.
 public enum MDTextKitStyleKit {
 
@@ -14,7 +14,7 @@ public enum MDTextKitStyleKit {
         return (x, y, w, h)
     }
 
-    /// Bear: `drawLinkIconWithFrame:fillColor:` — chain-link glyph plus a 50% alpha underline stroke.
+    /// Chain-link glyph plus a 50% alpha underline stroke.
     public static func drawLinkIcon(frame: CGRect, fillColor: NSColor) {
         let f = normalized(frame)
         let (x, y, w, h) = (f.x, f.y, f.w, f.h)
@@ -79,7 +79,7 @@ public enum MDTextKitStyleKit {
         NSGraphicsContext.restoreGraphicsState()
     }
 
-    /// Bear: `drawHardLineBreakWithFrame:fillColor:` — the "return" arrow.
+    /// The "return" arrow.
     public static func drawHardLineBreak(frame: CGRect, fillColor: NSColor) {
         let f = normalized(frame)
         let (x, y, w, h) = (f.x, f.y, f.w, f.h)
@@ -109,7 +109,6 @@ public enum MDTextKitStyleKit {
         path.fill()
     }
 
-    /// Bear: `drawArrowIconWithFrame:fillColor:`
     public static func drawArrowIcon(frame: CGRect, fillColor: NSColor) {
         let f = normalized(frame)
         let (x, y, w, h) = (f.x, f.y, f.w, f.h)
@@ -132,7 +131,7 @@ public enum MDTextKitStyleKit {
         path.fill()
     }
 
-    /// Bear: `drawHighlighterWithFrame:fillColor:accentColor:` — marker pen glyph at 90% alpha.
+    /// Marker pen glyph at 90% alpha.
     public static func drawHighlighter(frame: CGRect, fillColor: NSColor, accentColor: NSColor) {
         let x0 = floor(frame.width * 0.04987 - 0.25)
         let x = frame.minX + x0 + 0.75
@@ -229,7 +228,7 @@ public enum MDTextKitStyleKit {
 }
 
 public extension NSBezierPath {
-    /// Bear: `+[NSBezierPath squircleIn:cornerRadius:]` — a continuous-corner rounded rect.
+    /// A continuous-corner rounded rect.
     static func squircle(in rect: CGRect, cornerRadius: CGFloat) -> NSBezierPath {
         let r = min(cornerRadius, min(rect.width, rect.height) / 2)
         let path = NSBezierPath()
@@ -248,7 +247,6 @@ public extension NSBezierPath {
         return path
     }
 
-    /// Bear: `rotateFromCenterByDegrees:`
     func rotateFromCenter(byDegrees degrees: CGFloat) {
         let center = NSPoint(x: bounds.midX, y: bounds.midY)
         let t = AffineTransform(translationByX: center.x, byY: center.y)

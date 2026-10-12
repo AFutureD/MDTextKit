@@ -2,8 +2,8 @@ import AppKit
 import MDTextKit
 import PolarMark
 
-/// Bear: `MDTextView : NSTextView` (MDTextKitUI, Swift). Routes every edit, key command and selection
-/// change through `MDEditorController`, exactly the way Bear's view does.
+/// `MDTextView : NSTextView` (MDTextKitUI, Swift). Routes every edit, key command and selection
+/// change through `MDEditorController`.
 public class MDTextView: NSTextView, NSTextViewDelegate {
     public let editorController: MDEditorController
     private var trackingArea: NSTrackingArea?
@@ -32,11 +32,11 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         isAutomaticDashSubstitutionEnabled = false
         isAutomaticTextReplacementEnabled = false
         isAutomaticSpellingCorrectionEnabled = false
-        isContinuousSpellCheckingEnabled = false   // Bear: MDTextViewContinuousSpellCheckingEnabled user default (off on this Mac)
+        isContinuousSpellCheckingEnabled = false   // spell checking is a host setting; off by default
         isAutomaticLinkDetectionEnabled = false
         usesFindBar = true
         isIncrementalSearchingEnabled = true
-        textContainerInset = .zero   // Bear: defaultTextContainerInset = (0, 0); the host adds its own
+        textContainerInset = .zero   // the host adds its own inset
         isVerticallyResizable = true
         isHorizontallyResizable = false
         autoresizingMask = [.width]
@@ -56,13 +56,13 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
 
     // MARK: Editing hooks
 
-    /// Bear: styling runs from `didChangeText`.
-    /// Bear: the editor's dedicated undo manager (`NoteEditorViewController.editorUndoManager`, returned from
+    /// Styling runs from `didChangeText`.
+    /// The editor's dedicated undo manager (`NoteEditorViewController.editorUndoManager`, returned from
     /// `undoManagerForTextView:`); the window's manager is never used.
     public let editorUndoManager = UndoManager()
     public func undoManager(for view: NSTextView) -> UndoManager? { editorUndoManager }
 
-    /// Bear (MDTextView.didChangeText): super, then after an undo/redo the delegate's `textViewDidUndoOrRedo` runs
+    /// Super, then after an undo/redo the delegate's `textViewDidUndoOrRedo` runs
     /// asynchronously (the host makes the text view first responder again).
     public override func didChangeText() {
         super.didChangeText()
@@ -74,7 +74,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         }
     }
 
-    /// Bear (host `textDidChange:`): restyle after every change, including undo/redo.
+    /// Restyle after every change, including undo/redo.
     public func textDidChange(_ notification: Notification) {
         editorController.performStyling(in: self)
         editorController.fixTypingAttributes(in: self)
@@ -100,7 +100,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         editorController.adjustedSelection(for: self, currentSelection: old, proposedSelection: new)
     }
 
-    /// Bear (NoteEditorViewController.textViewDidChangeSelection + BearCore adjustMarkdownHidingFor(selection:)):
+    /// Selection change handling (host textViewDidChangeSelection + adjustMarkdownHiding(for selection:)):
     /// typing attributes first, then an asynchronous show/hide pass — only while the view is first responder.
     public func textViewDidChangeSelection(_ notification: Notification) {
         editorController.fixTypingAttributes(in: self)
@@ -129,15 +129,15 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         return ok
     }
 
-    // MARK: Key commands (Bear forwards these to the controller before NSTextView handles them)
+    // MARK: Key commands (forwarded to the controller before NSTextView handles them)
 
     public override func insertNewline(_ sender: Any?) {
-        // Bear: Shift-Return bypasses the AST newline handling (plain line break).
+        // Shift-Return bypasses the AST newline handling (plain line break).
         if NSApp.currentEvent?.modifierFlags.contains(.shift) == true { super.insertNewline(sender); return }
         if editorController.textViewShouldInsertNewLine(self) { super.insertNewline(sender) }
     }
 
-    /// Bear (BearCore handleLeftArrow/handleRightArrow): the arrow keys enter a table from either side.
+    /// The arrow keys enter a table from either side.
     public override func moveLeft(_ sender: Any?) {
         let sel = selectedRange()
         if sel.length == 0, sel.location >= 1, let vc = tableController(at: sel.location - 1) {
@@ -158,7 +158,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         (mdTextStorage.textAttachment(at: index) as? MDTableTextAttachment)?.attachmentViewController as? MDTableAttachmentViewController
     }
 
-    /// Bear (MDTextView.selectAll → PMK SelectAllText): inside a fenced code / math block the first ⌘A selects the
+    /// Inside a fenced code / math block the first ⌘A selects the
     /// block content, the second selects everything.
     public override func selectAll(_ sender: Any?) {
         let ts = mdTextStorage
@@ -207,8 +207,8 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         return r.location == NSNotFound ? nil : r.location
     }
 
-    // Bear: MDTextView.mouseDown only calls super; attachment clicks arrive through the cell tracking →
-    // `textView:clickedOnCell:inRect:atIndex:` (NoteEditorViewController) → `didInteract(with:at:)` (BearCore).
+    // MDTextView.mouseDown only calls super; attachment clicks arrive through the cell tracking →
+    // `textView:clickedOnCell:inRect:atIndex:` → `didInteract(with:at:)`.
     @objc(textView:clickedOnCell:inRect:atIndex:)
     public func textView(_ textView: NSTextView, clickedOnCell cell: NSTextAttachmentCellProtocol, in cellFrame: NSRect, at charIndex: Int) {
         guard let att = cell.attachment as? SFTextAttachment else { return }
@@ -224,7 +224,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         } else if att is MDLinkTextAttachment, let url = linkURL(at: charIndex) {
             NSWorkspace.shared.open(url)
         } else if att is MDHighlighterTextAttachment || att is MDCalloutTextAttachment {
-            setSelectedRange(NSRange(location: charIndex, length: 1))   // Bear pops the highlighter / callout menu here
+            setSelectedRange(NSRange(location: charIndex, length: 1))   // the host pops the highlighter / callout menu here
         } else if !didInteract(with: att, at: charIndex) {
             window?.makeFirstResponder(self)
             setSelectedRange(NSRange(location: charIndex, length: 1))
@@ -236,7 +236,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         self.textView(textView, clickedOnCell: cell, in: cellFrame, at: charIndex)
     }
 
-    /// Bear: `NoteEditorCoreViewController.didInteract(with:at:)` — tasks toggle, fold pills unfold.
+    /// Tasks toggle, fold pills unfold.
     public func didInteract(with attachment: SFTextAttachment, at index: Int) -> Bool {
         if attachment is MDTaskTextAttachment, isEditable {
             editorController.toggleTask(in: self, range: NSRange(location: index, length: 1), style: 0)
@@ -257,7 +257,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         return nil
     }
 
-    /// Bear: heading-level popup when the `#` attachment is clicked (NoteEditorViewController headingMenu).
+    /// Heading-level popup when the `#` attachment is clicked (NoteEditorViewController headingMenu).
     private func showHeadingLevelMenu(at index: Int, cellFrame: NSRect) {
         let level = mdTextStorage.headerLevel(at: index)
         let menu = NSMenu()
@@ -293,7 +293,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         trackingArea = t
     }
 
-    // MARK: Pasteboard (Bear: MDTextView + NoteEditorViewController shouldWrite/ReadSelection)
+    // MARK: Pasteboard
 
     public static let attributedStringPboardType = NSPasteboard.PasteboardType("MDTextViewAttributedStringPboardType")
 
@@ -328,7 +328,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
             }
             return false
         case .rtfd:
-            // Bear: MDRTFExporter renders the markdown to rich text; here the styled text with attachments expanded.
+            // MDRTFExporter renders the markdown to rich text; here the styled text with attachments expanded.
             let rich = MDRTFImporter.richText(fromStyled: mdTextStorage.attributedSubstring(from: sel))
             if let data = try? rich.data(from: NSRange(location: 0, length: rich.length), documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]) {
                 pboard.setData(data, forType: .rtfd); return true
@@ -340,12 +340,12 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
     }
 
     public override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
-        // Bear's delegate ignores `type` and reads the whole pasteboard itself; false → AppKit's plain-string paste.
+        // The delegate ignores `type` and reads the whole pasteboard itself; false → AppKit's plain-string paste.
         if readPasteboard(pboard) { return true }
         return super.readSelection(from: pboard, type: type)
     }
 
-    /// Bear: NoteEditorViewController.textView(_:shouldReadSelectionFrom:type:) + MDPasteboardReader.
+    /// NoteEditorViewController.textView(_:shouldReadSelectionFrom:type:) + MDPasteboardReader.
     private func readPasteboard(_ pb: NSPasteboard) -> Bool {
         let dest = rangeForUserTextChange
         if internalDraggingRange.location != NSNotFound {
@@ -375,11 +375,11 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         return reader.read(from: pb, withAttachments: addFilesBlock != nil)
     }
 
-    /// Host hook (Bear: NoteEditorCoreViewController.addFiles(from:in:)) — copies files into the note's assets and
+    /// Host hook (addFiles(from:in:)) — copies files into the note's assets and
     /// inserts `![name](assets/name)`.
     public var addFilesBlock: (([URL], NSRange) -> Void)?
 
-    /// Bear: NoteEditorViewController readAttributedStringBlock.
+    /// NoteEditorViewController readAttributedStringBlock.
     private func insertPasted(_ pasted: NSAttributedString, at dest: NSRange) {
         guard pasted.length > 0 else { return }
         let full = NSRange(location: 0, length: pasted.length)
@@ -416,7 +416,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         editorController.replaceCharacters(in: dest, with: m, in: self)
     }
 
-    // MARK: Drag & drop (Bear: internalDraggingRange / singleLineDragging / line insertion point)
+    // MARK: Drag & drop
 
     public var internalDraggingRange = NSRange(location: NSNotFound, length: 0)
     public private(set) var singleLineDragging = false
@@ -470,7 +470,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         return true
     }
 
-    /// Bear: `shouldSingleLineDragFor:` — block-level drags (list items, headings, tables, rules, quotes) drop as whole lines.
+    /// Block-level drags (list items, headings, tables, rules, quotes) drop as whole lines.
     private func shouldSingleLineDrag(for pb: NSPasteboard) -> Bool {
         guard let data = pb.data(forType: MDTextView.attributedStringPboardType), let a = NSMutableAttributedString.attributedString(fromPolarData: data), a.length > 0 else { return false }
         var i = 0
@@ -514,7 +514,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         if singleLineDragging { drawLineInsertionPoint(lineInsertionPointRect) }
     }
 
-    /// Bear: `drawLineInsertionPoint` — chevron plus a bar in the insertion point colour.
+    /// Chevron plus a bar in the insertion point colour.
     private func drawLineInsertionPoint(_ rect: CGRect) {
         guard !rect.equalTo(.zero) else { return }
         let lw = max(mdLayoutManager.basePointSize, 1), h = rect.height

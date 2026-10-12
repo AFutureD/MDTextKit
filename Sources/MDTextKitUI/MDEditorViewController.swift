@@ -4,7 +4,7 @@ import PolarMark
 import SFThemeKit
 import TextBundle
 
-/// Bear: `NoteEditorCoreViewController` — builds the editor, pushes the theme into the stylers and the
+/// Builds the editor, pushes the theme into the stylers and the
 /// layout manager, and exposes the format commands.
 public final class MDEditorViewController: NSViewController, SFStylable {
     public private(set) var textView: MDTextView!
@@ -15,7 +15,7 @@ public final class MDEditorViewController: NSViewController, SFStylable {
     public let themeManager: SFThemeManager
     private var pendingMarkdown: String?
     public let tableRenderer = MDTableAttachmentRenderer()
-    /// Bear: the host keeps the attachment view controllers alive (`attachmentViewController` is weak).
+    /// The host keeps the attachment view controllers alive (`attachmentViewController` is weak).
     private var attachmentControllers: [ObjectIdentifier: (controller: NSViewController, attachment: SFTextAttachment)] = [:]
     private var attachmentPruneObserver: NSObjectProtocol?
     /// Base folder for relative image paths (the note file's folder, or the TextBundle).
@@ -56,9 +56,9 @@ public final class MDEditorViewController: NSViewController, SFStylable {
         container.addSubview(bottomBar)
         view = container
         editorController.autoHideMarkdown = true
-        // Bear host hooks: image files and table rendering are provided by the UI layer.
+        // Host hooks: image files and table rendering are provided by the UI layer.
         tableRenderer.editorController = editorController
-        // Bear: NoteEditorCoreViewController.maxAvailableTextContainerWidth(for:) = textContainerMaxWidth − 2 × defaultParagraphIndent
+        // NoteEditorCoreViewController.maxAvailableTextContainerWidth(for:) = textContainerMaxWidth − 2 × defaultParagraphIndent
         tableRenderer.maxAvailableWidth = { [weak self] in
             guard let self = self else { return 500 }
             let r = self.editorController.attributedStringRenderer
@@ -67,7 +67,7 @@ public final class MDEditorViewController: NSViewController, SFStylable {
         editorController.attributedStringRenderer.tableStyler.attachmentRenderer = { [weak self] att in
             guard let self = self else { return }
             self.tableRenderer.render(att)
-            // Bear: MDAttachmentCoreViewController.viewController(for:…) — a live table editor per attachment.
+            // MDAttachmentCoreViewController.viewController(for:…) — a live table editor per attachment.
             let vc = MDTableAttachmentViewController(attachment: att, hostTextView: self.textView, editorController: self.editorController,
                                                      gridRenderer: self.tableRenderer, themeManager: self.themeManager)
             att.attachmentViewController = vc
@@ -80,7 +80,7 @@ public final class MDEditorViewController: NSViewController, SFStylable {
             if let bundle = self.textBundle, let base = bundle.url { return base.appendingPathComponent(path) }
             return self.documentBaseURL?.appendingPathComponent(path)
         }
-        // Bear: NoteEditorCoreViewController.addFiles(from:in:) — copy into the note's assets and insert `![…](…)`.
+        // NoteEditorCoreViewController.addFiles(from:in:) — copy into the note's assets and insert `![…](…)`.
         textView.addFilesBlock = { [weak self] urls, range in
             guard let self = self else { return }
             var md: [String] = []
@@ -105,7 +105,7 @@ public final class MDEditorViewController: NSViewController, SFStylable {
 
     public var markdown: String { textView?.markdown ?? pendingMarkdown ?? "" }
 
-    // MARK: TextBundle (Bear: MDImporters / MDExporters + TextBundle.framework)
+    // MARK: TextBundle
 
     public private(set) var textBundle: TextBundle?
 
@@ -132,7 +132,7 @@ public final class MDEditorViewController: NSViewController, SFStylable {
 
     public func assetURL(for relativePath: String) -> URL? { textBundle?.assetURL(for: relativePath) }
 
-    // MARK: Theme → stylers (Bear: MDEditorViewController.configureStylers)
+    // MARK: Theme → stylers
 
     public func styleObject(with themeManager: SFThemeManager) {
         guard isViewLoaded else { return }
@@ -140,7 +140,6 @@ public final class MDEditorViewController: NSViewController, SFStylable {
         editorController.restyleAll(in: textView)
     }
 
-    /// Bear: `MDEditorController.styleTextView(_:with:)`
     private func applyTheme(_ tm: SFThemeManager) {
         let r = editorController.attributedStringRenderer
         r.styleObject(with: tm)
@@ -187,7 +186,7 @@ public final class MDEditorViewController: NSViewController, SFStylable {
         return "assets/" + name
     }
 
-    // MARK: Bottom bar (Bear: external note window toolbar)
+    // MARK: Bottom bar
 
     private func makeBottomBar() -> MDEditorBottomBar {
         let sizeMenu = NSMenu()
@@ -212,7 +211,7 @@ public final class MDEditorViewController: NSViewController, SFStylable {
         return MDEditorBottomBar(items: items, target: self)
     }
 
-    /// Bear: BearThemeManager increaseTextSize / decreaseTextSize / resetTextSize (±2pt, 10…30).
+    /// Text size steps for increaseTextSize / decreaseTextSize / resetTextSize (±2pt, 10…30).
     @objc public func increaseTextSize(_ sender: Any?) { setUserFontSize(currentUserFontSize + 2) }
     @objc public func decreaseTextSize(_ sender: Any?) { setUserFontSize(currentUserFontSize - 2) }
     @objc public func resetTextSize(_ sender: Any?) { themeManager.overrides.removeValue(forKey: "editor.text size") }
@@ -233,7 +232,7 @@ public final class MDEditorViewController: NSViewController, SFStylable {
         textView.setSelectedRange(NSRange(location: range.location + replacement.count - 1, length: 0))
     }
 
-    // MARK: Folding (Bear: toggleFolding: / foldAll: / unfoldAll:)
+    // MARK: Folding
     @objc public func toggleFolding(_ sender: Any?) { editorController.toggleFolding(at: textView.selectedRange().location, in: textView); textView.needsDisplay = true }
     @objc public func foldAll(_ sender: Any?) { editorController.foldAllHeading(in: textView); textView.needsDisplay = true }
     @objc public func unfoldAll(_ sender: Any?) { editorController.unfoldAllHeading(in: textView); textView.needsDisplay = true }

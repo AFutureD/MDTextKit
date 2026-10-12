@@ -1,12 +1,12 @@
 import AppKit
 
-/// Bear: objects that re-style themselves when the theme changes
+/// Objects that re-style themselves when the theme changes
 /// (`-[SFThemeManager registerStylableObject:]` / `styleObjectWithThemeManager:`).
 public protocol SFStylable: AnyObject {
     func styleObject(with themeManager: SFThemeManager)
 }
 
-/// Bear: `SFThemeManager`. Holds the current theme, caches typed lookups and
+/// `SFThemeManager`. Holds the current theme, caches typed lookups and
 /// pushes theme changes to registered objects.
 public final class SFThemeManager {
     public static let shared = SFThemeManager()
@@ -42,7 +42,6 @@ public final class SFThemeManager {
 
     // MARK: Loading
 
-    /// Bear: `-[SFThemeManager loadTheme:updateStylableObjects:]`
     public func loadTheme(_ theme: SFTheme, updateStylableObjects: Bool = true) {
         currentTheme = theme
         fontCache.removeAll()
@@ -61,7 +60,7 @@ public final class SFThemeManager {
         for o in stylables.allObjects { (o as? SFStylable)?.styleObject(with: self) }
     }
 
-    // MARK: Typed lookups (Bear: colorForKey:, fontForKey:size:, numberForKey:, stringForKey:)
+    // MARK: Typed lookups
 
     public func color(forKey key: String, default fallback: NSColor = .textColor) -> NSColor {
         if let s = overrides[key] as? String, let c = SFTheme.color(fromHex: s) { return c }

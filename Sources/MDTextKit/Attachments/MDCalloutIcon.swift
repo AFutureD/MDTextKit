@@ -1,6 +1,6 @@
 import AppKit
 
-/// Bear: `MDCalloutIcon` — vector icons for the five callout kinds, drawn into a flipped NSImage and scaled by
+/// Vector icons for the five callout kinds, drawn into a flipped NSImage and scaled by
 /// `fontSize / 20`. Coordinates recovered from the arm64 asm (y-down); `C` entries are end point then controls.
 public final class MDCalloutIcon {
     public let type: Int
@@ -69,7 +69,7 @@ public final class MDCalloutIcon {
     ]
 }
 
-/// Bear: `MDCalloutTextAttachment` — the `[!TYPE] ` marker becomes icon + "  Label" (label hidden while the
+/// The `[!TYPE] ` marker becomes icon + "  Label" (label hidden while the
 /// caret edits an untitled head line).
 public final class MDCalloutTextAttachment: SFTextAttachment {
     public private(set) var type: Int = 0

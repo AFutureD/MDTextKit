@@ -1,6 +1,6 @@
 import Foundation
 
-/// Bear: heading / list folding (`Ice::Inline::Folding`, `PMK::Operation::ToggleFold`,
+/// Heading / list folding (`Ice::Inline::Folding`, `PMK::Operation::ToggleFold`,
 /// `OperationUnfoldRangeEdges`, `RemoveStrayMetaComments`). The fold state lives in the markdown as the
 /// comment `<!-- {"fold":true} -->` at the end of the head line; everything after it up to the end of the
 /// section is hidden by `MDFoldTextStyler`.
@@ -10,7 +10,6 @@ extension PMKAST {
 
     // MARK: Tree queries (Ice folding engine)
 
-    /// Bear: `isContentHeadOfFoldable(n)`.
     func isContentHeadOfFoldable(_ n: PMKASTNode) -> Bool {
         guard let parent = n.parent else { return false }
         switch n.type {
@@ -28,7 +27,7 @@ extension PMKAST {
         }
     }
 
-    /// Bear: `foldableTailFromContentHead(h)` — last sibling of the folded section.
+    /// Last sibling of the folded section.
     func foldableTail(_ h: PMKASTNode) -> PMKASTNode? {
         switch h.type {
         case .heading:
@@ -47,7 +46,7 @@ extension PMKAST {
         }
     }
 
-    /// End offset of the hidden region (Bear: `end` node = node before the section's final line ending).
+    /// End offset of the hidden region (`end` node = node before the section's final line ending).
     func foldedRegionEnd(forHead h: PMKASTNode) -> Int {
         var end: Int
         switch h.type {
@@ -67,7 +66,6 @@ extension PMKAST {
 
     func foldMarkerNode(of head: PMKASTNode) -> PMKASTNode? { head.children.first { $0.type == .foldMarker } }
 
-    /// Bear: `isContentHeadFolded(n)`.
     func isContentHeadFolded(_ n: PMKASTNode) -> Bool { foldMarkerNode(of: n) != nil && isContentHeadOfFoldable(n) }
 
     /// Range covered by PMKFold for a marker node: marker start … end of the hidden region.
@@ -83,7 +81,7 @@ extension PMKAST {
         return out
     }
 
-    /// Bear: `foldedContentHead(node)` — innermost folded head whose hidden region contains `index`
+    /// Innermost folded head whose hidden region contains `index`
     /// (the head line itself is not hidden). `includeHead` also matches the head's own line (marker included).
     private func foldedHeads(hiding index: Int, includeHead: Bool) -> [PMKASTNode] {
         foldedHeads.filter { h in
@@ -93,7 +91,7 @@ extension PMKAST {
         }
     }
 
-    /// Bear: `firstFoldableHeadBlock(n)` — the foldable head to fold for a caret at `index`.
+    /// The foldable head to fold for a caret at `index`.
     private func firstFoldableHeadBlock(at index: Int) -> PMKASTNode? {
         guard let b = blockNode(at: index) else { return nil }
         // climb from the leaf block: the block itself, then its list item, then previous siblings / parents
@@ -111,7 +109,7 @@ extension PMKAST {
 
     // MARK: Operations
 
-    /// Bear: `ToggleFold::foldHeadBlock(h)` — insert the marker before the head line's newline.
+    /// Insert the marker before the head line's newline.
     private func foldHeadBlock(_ h: PMKASTNode, results: inout [PMKASTOperationResult], selection: inout NSRange) {
         let at = lineEnd(at: h.range.location)                      // offset of the head line's "\n"
         let regionEnd = foldedRegionEnd(forHead: h)
@@ -141,7 +139,7 @@ extension PMKAST {
         return PMKASTOperationResult(replacementRange: m.range, replacementString: "", proposedSelection: selection)
     }
 
-    /// Bear: `toggleFoldInRange:selectionRange:` (ToggleFold type 0).
+    /// `toggleFoldInRange:selectionRange:` (ToggleFold type 0).
     public func toggleFold(in range: NSRange, selectionRange: NSRange) -> [PMKASTOperationResult] {
         let loc = clamp(range).location
         var selection = clamp(selectionRange)
@@ -154,7 +152,7 @@ extension PMKAST {
         return results.sorted { $0.replacementRange.location > $1.replacementRange.location }
     }
 
-    /// Bear: `foldAllHeadingSelectionRange:` (ToggleFold type 1).
+    /// `foldAllHeadingSelectionRange:` (ToggleFold type 1).
     public func foldAllHeading(selectionRange: NSRange) -> [PMKASTOperationResult] {
         var results: [PMKASTOperationResult] = []
         var selection = clamp(selectionRange)
@@ -167,7 +165,7 @@ extension PMKAST {
         return results.sorted { $0.replacementRange.location > $1.replacementRange.location }
     }
 
-    /// Bear: `unfoldAllHeadingSelectionRange:` (ToggleFold type 2) — list-item folds are left alone.
+    /// `unfoldAllHeadingSelectionRange:` (ToggleFold type 2) — list-item folds are left alone.
     public func unfoldAllHeading(selectionRange: NSRange) -> [PMKASTOperationResult] {
         let selection = clamp(selectionRange)
         var results: [PMKASTOperationResult] = []
@@ -179,7 +177,7 @@ extension PMKAST {
         return results.sorted { $0.replacementRange.location > $1.replacementRange.location }
     }
 
-    /// Bear: `OperationUnfoldRangeEdges` — a caret or edit landing inside hidden content unfolds every fold hiding it.
+    /// A caret or edit landing inside hidden content unfolds every fold hiding it.
     public func unfoldAtRangeEdges(_ range: NSRange, selectionRange: NSRange) -> [PMKASTOperationResult] {
         let r = clamp(range)
         let selection = clamp(selectionRange)
@@ -195,7 +193,7 @@ extension PMKAST {
         return heads.compactMap { removeMarker(of: $0, selection: selection) }.sorted { $0.replacementRange.location > $1.replacementRange.location }
     }
 
-    /// Bear: `RemoveStrayMetaComments` — delete fold comments that no longer belong to a foldable head.
+    /// Delete fold comments that no longer belong to a foldable head.
     public func removeStrayMetaComment(in range: NSRange, selectionRange: NSRange) -> [PMKASTOperationResult] {
         let r = clamp(range)
         let selection = clamp(selectionRange)

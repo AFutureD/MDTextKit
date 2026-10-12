@@ -9,7 +9,7 @@ public extension NSAttributedString {
 
     // MARK: - PMKUtils
 
-    /// Bear: `longestRangeForAttribute:atIndex:` — NSNotFound range when the attribute is absent.
+    /// NSNotFound range when the attribute is absent.
     func longestRange(forAttribute key: NSAttributedString.Key, at index: Int) -> NSRange {
         guard index >= 0, index < length, attribute(key, at: index, effectiveRange: nil) != nil else { return NSRange(location: NSNotFound, length: 0) }
         var r = NSRange()
@@ -19,7 +19,7 @@ public extension NSAttributedString {
 
     // MARK: - Range predicates (PolarMark)
 
-    /// Bear: `isRange:insideAttribute:` — true when either end of the range carries the attribute.
+    /// True when either end of the range carries the attribute.
     func isRange(_ range: NSRange, insideAttribute key: NSAttributedString.Key) -> Bool {
         guard range.location != NSNotFound else { return false }
         let last = range.length == 0 ? 0 : range.length - 1
@@ -74,13 +74,13 @@ public extension NSAttributedString {
         return info.isTaskList
     }
 
-    /// Bear: `headerLevelAtIndex:` (0 when not in a heading).
+    /// `headerLevelAtIndex:` (0 when not in a heading).
     func headerLevel(at index: Int) -> Int {
         guard index < length else { return 0 }
         return (attribute(.pmkHeading, at: index, effectiveRange: nil) as? NSNumber)?.intValue ?? 0
     }
 
-    /// Bear: `writingDirectionAtIndex:` — 0 = LTR, 1 = RTL, -1 = natural/unknown.
+    /// 0 = LTR, 1 = RTL, -1 = natural/unknown.
     func writingDirection(at index: Int) -> Int {
         guard index < length, let v = attribute(.pmkDirection, at: index, effectiveRange: nil) as? NSNumber else { return -1 }
         if v.intValue == PMKDirectionValue.ltr.rawValue { return 0 }
@@ -88,7 +88,6 @@ public extension NSAttributedString {
         return -1
     }
 
-    /// Bear: `hashTagRangeAtIndex:`
     func hashTagRange(at index: Int) -> NSRange { longestRange(forAttribute: .pmkHashtag, at: index) }
     func headerRange(at index: Int) -> NSRange { headerRange(at: index, markerRange: nil) }
     func linkRange(at index: Int) -> NSRange { longestRange(forAttribute: .pmkLink, at: index) }
@@ -96,7 +95,7 @@ public extension NSAttributedString {
     func codeBlockRange(at index: Int) -> NSRange { longestRange(forAttribute: .pmkFencedCode, at: index) }
     func highlighterRange(at index: Int) -> NSRange { longestRange(forAttribute: .pmkHighlighter, at: index) }
 
-    /// Bear: `headerRangeAtIndex:markerRange:` — the heading line containing `index`.
+    /// The heading line containing `index`.
     func headerRange(at index: Int, markerRange: UnsafeMutablePointer<NSRange>?) -> NSRange {
         let whole = longestRange(forAttribute: .pmkHeading, at: index)
         guard whole.location != NSNotFound else { return whole }
@@ -111,7 +110,7 @@ public extension NSAttributedString {
         return result
     }
 
-    /// Bear: `inlineClosingMarkerRangeAtIndex:` — the closing marker run at `index`, if any.
+    /// The closing marker run at `index`, if any.
     func inlineClosingMarkerRange(at index: Int) -> NSRange {
         guard index != 0, index < length else { return NSRange(location: NSNotFound, length: 0) }
         let keys: [NSAttributedString.Key] = [.pmkStrongMarker, .pmkEmphasisMarker, .pmkStrikethroughMarker, .pmkUnderlineMarker,
@@ -123,7 +122,6 @@ public extension NSAttributedString {
         return NSRange(location: NSNotFound, length: 0)
     }
 
-    /// Bear: `extendRange:toFullyContainAttributes:`
     func extendRange(_ range: NSRange, toFullyContainAttributes keys: [NSAttributedString.Key]) -> NSRange {
         var out = range
         let whole = NSRange(location: 0, length: length)
@@ -149,7 +147,6 @@ public extension NSAttributedString {
 
     // MARK: - Enumerations (PolarMark)
 
-    /// Bear: `enumerateHeadingInRange:options:usingBlock:`
     /// Block: (contentRange, atxMarkerRange, setextMarkerRange, headingRange, level, stop).
     func enumerateHeading(in range: NSRange, options: NSAttributedString.EnumerationOptions,
                           using block: (NSRange, NSRange, NSRange, NSRange, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {
@@ -188,7 +185,6 @@ public extension NSAttributedString {
         }
     }
 
-    /// Bear: `enumerateWrappingAttribute:attributeMarker:inRange:options:usingBlock:`
     /// Block: (contentRange, openingMarkerRange, closingMarkerRange, stop). A marker run that ends
     /// where the construct ends is the closing marker (so partial ranges still work).
     func enumerateWrappingAttribute(_ key: NSAttributedString.Key, marker: NSAttributedString.Key, in range: NSRange,
@@ -230,7 +226,6 @@ public extension NSAttributedString {
     func enumerateWikiLink(in r: NSRange, options o: NSAttributedString.EnumerationOptions, using b: (NSRange, NSRange, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) { enumerateWrappingAttribute(.pmkWikiLink, marker: .pmkWikiLinkMarker, in: r, options: o, using: b) }
     func enumerateInlineMath(in r: NSRange, options o: NSAttributedString.EnumerationOptions, using b: (NSRange, NSRange, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) { enumerateWrappingAttribute(.pmkMathSpan, marker: .pmkMathSpanMarker, in: r, options: o, using: b) }
 
-    /// Bear: `enumerateFencedCodeInRange:options:usingBlock:`
     /// Block: (contentRange, openingFenceRange, closingFenceRange, languageRange, language, stop).
     func enumerateFencedCode(in range: NSRange, options: NSAttributedString.EnumerationOptions,
                              using block: (NSRange, NSRange, NSRange, NSRange, String?, UnsafeMutablePointer<ObjCBool>) -> Void) {
@@ -249,19 +244,17 @@ public extension NSAttributedString {
         }
     }
 
-    /// Bear: `hasTableAtIndex:`
     func hasTable(at index: Int) -> Bool {
         guard index >= 0, index < length else { return false }
         return attribute(.pmkTable, at: index, effectiveRange: nil) != nil
     }
 
-    /// Bear: `isRangeInsideTable:`
     func isRangeInsideTable(_ r: NSRange) -> Bool {
         guard r.location != NSNotFound, NSMaxRange(r) <= length else { return false }
         return hasTable(at: r.location) || hasTable(at: r.location + max(r.length - 1, 0))
     }
 
-    /// Bear: `enumerateTableInRange:options:tableBlock:cellBlock:` — tableBlock(range, rows, columns, stop),
+    /// TableBlock(range, rows, columns, stop),
     /// cellBlock(contentRange, row, column, alignment, stop); row 1 is the delimiter row.
     func enumerateTable(in range: NSRange, options: NSAttributedString.EnumerationOptions,
                         tableBlock: ((NSRange, Int, Int, UnsafeMutablePointer<ObjCBool>) -> Void)?,
@@ -293,13 +286,12 @@ public extension NSAttributedString {
         }
     }
 
-    /// Bear: `hasFoldAtIndex:`
     func hasFold(at index: Int) -> Bool {
         guard index >= 0, index < length else { return false }
         return attribute(.pmkFold, at: index, effectiveRange: nil) != nil
     }
 
-    /// Bear: `enumerateFoldInRange:options:usingBlock:` — block(markerRange, foldedRange, stop).
+    /// Block(markerRange, foldedRange, stop).
     func enumerateFold(in range: NSRange, options: NSAttributedString.EnumerationOptions, using block: (NSRange, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) {
         enumerateAttribute(.pmkFold, in: range, options: options) { v, r, stop in
             guard v != nil else { return }
@@ -322,7 +314,6 @@ public extension NSAttributedString {
         enumerateAttribute(.pmkIndentedCode, in: range, options: options) { v, r, stop in if v != nil { block(r, stop) } }
     }
 
-    /// Bear: `enumerateLinkAttribute:markerAttribute:urlAttribute:titleAttribute:labelAttribute:inRange:options:usingBlock:`
     /// Markers come as four runs: "[" open, "]" close, "(" open, ")" close.
     /// Block: (labelRange, urlRange, titleRange, openBracket, closeBracket, openParen, closeParen, stop).
     func enumerateLinkAttribute(_ key: NSAttributedString.Key, marker: NSAttributedString.Key, url urlKey: NSAttributedString.Key,
@@ -371,7 +362,6 @@ public extension NSAttributedString {
         enumerateLinkAttribute(.pmkImage, marker: .pmkImageMarker, url: .pmkImageURL, title: .pmkImageTitle, label: .pmkImageLabel, in: range, options: options, using: block)
     }
 
-    /// Bear: `enumerateAutoLinkInRange:attributeName:options:usingBlock:`
     /// Block: (urlRange, openMarker "<", closeMarker ">", stop); markers are NSNotFound for bare links.
     func enumerateAutoLink(in range: NSRange, attributeName key: NSAttributedString.Key, options: NSAttributedString.EnumerationOptions,
                            using block: (NSRange, NSRange, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) {
@@ -400,7 +390,6 @@ public extension NSAttributedString {
     func enumerateAutoLinkURL(in r: NSRange, options o: NSAttributedString.EnumerationOptions, using b: (NSRange, NSRange, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) { enumerateAutoLink(in: r, attributeName: .pmkAutoLinkURL, options: o, using: b) }
     func enumerateAutoLinkEmail(in r: NSRange, options o: NSAttributedString.EnumerationOptions, using b: (NSRange, NSRange, NSRange, UnsafeMutablePointer<ObjCBool>) -> Void) { enumerateAutoLink(in: r, attributeName: .pmkAutoLinkEmail, options: o, using: b) }
 
-    /// Bear: `enumerateHighlighterInRange:options:highlighterBlock:colorBlock:markerBlock:`
     func enumerateHighlighter(in range: NSRange, options: NSAttributedString.EnumerationOptions,
                               highlighterBlock: (NSRange, UnsafeMutablePointer<ObjCBool>) -> Void,
                               colorBlock: (NSRange, Int, UnsafeMutablePointer<ObjCBool>) -> Void,
@@ -422,7 +411,6 @@ public extension NSAttributedString {
 
     // MARK: - PMKLists
 
-    /// Bear: `listItemInfoAtIndex:longestEffectiveRange:`
     func listItemInfo(at index: Int, longestEffectiveRange: UnsafeMutablePointer<NSRange>? = nil) -> PMKListInfo? {
         guard index < length else { return nil }
         let info = attribute(.pmkListItem, at: index, effectiveRange: nil) as? PMKListInfo
@@ -432,7 +420,7 @@ public extension NSAttributedString {
 
     func rangeOfListItem(at index: Int) -> NSRange { rangeOfListItem(at: index, markerRange: nil) }
 
-    /// Bear: `rangeOfListItemAtIndex:markerRange:` — the item plus its sublists / continuation
+    /// The item plus its sublists / continuation
     /// paragraphs (runs of deeper level, or the same level without a marker).
     func rangeOfListItem(at index: Int, markerRange: UnsafeMutablePointer<NSRange>?) -> NSRange {
         let notFound = NSRange(location: NSNotFound, length: 0)
@@ -457,7 +445,7 @@ public extension NSAttributedString {
         return r
     }
 
-    /// Bear: `rangeOfListMarkerForListItemRange:` — first marker run; an indent-space run first means "no marker".
+    /// First marker run; an indent-space run first means "no marker".
     func rangeOfListMarker(forListItemRange range: NSRange) -> NSRange {
         var result = NSRange(location: NSNotFound, length: 0)
         enumerateAttribute(.pmkListMarker, in: range, options: []) { v, r, stop in
@@ -471,7 +459,7 @@ public extension NSAttributedString {
         return result
     }
 
-    /// Bear: `rangeOfListItemWithoutSublistsAtIndex:` — the item's own run only.
+    /// The item's own run only.
     func rangeOfListItemWithoutSublists(at index: Int) -> NSRange {
         guard index < length else { return NSRange(location: NSNotFound, length: 0) }
         var r = NSRange()
@@ -479,7 +467,6 @@ public extension NSAttributedString {
         return r
     }
 
-    /// Bear: `rangeOfIndentForListItemAtIndex:`
     func rangeOfIndentForListItem(at index: Int) -> NSRange {
         let item = rangeOfListItem(at: index)
         guard item.location != NSNotFound else { return item }
@@ -488,7 +475,6 @@ public extension NSAttributedString {
         return NSRange(location: item.location, length: 0)
     }
 
-    /// Bear: `rangeOfSublistsForListItemAtIndex:`
     func rangeOfSublistsForListItem(at index: Int) -> NSRange {
         let item = rangeOfListItem(at: index)
         guard item.location != NSNotFound else { return item }
@@ -498,7 +484,7 @@ public extension NSAttributedString {
         return rest == 0 ? NSRange(location: NSNotFound, length: 0) : NSRange(location: NSMaxRange(own), length: rest)
     }
 
-    /// Bear: `rangeOfParentListItemOfType:atIndex:` (type 0 = any).
+    /// `rangeOfParentListItemOfType:atIndex:` (type 0 = any).
     func rangeOfParentListItem(ofType type: Int, at index: Int) -> NSRange {
         var own = NSRange()
         var result = NSRange(location: NSNotFound, length: 0)
@@ -514,7 +500,6 @@ public extension NSAttributedString {
         return result
     }
 
-    /// Bear: `rangeOfNextSiblingListItemAtIndex:`
     func rangeOfNextSiblingListItem(at index: Int) -> NSRange {
         var own = NSRange()
         guard let info = listItemInfo(at: index, longestEffectiveRange: &own), NSMaxRange(own) < length else { return NSRange(location: NSNotFound, length: 0) }
@@ -526,7 +511,7 @@ public extension NSAttributedString {
         return r
     }
 
-    /// Bear: `rangeOfListLevel:atIndex:` — the contiguous run of items at `level` (or deeper) around `index`.
+    /// The contiguous run of items at `level` (or deeper) around `index`.
     func rangeOfListLevel(_ level: Int, at index: Int) -> NSRange {
         let notFound = NSRange(location: NSNotFound, length: 0)
         guard index < length else { return notFound }
@@ -569,7 +554,7 @@ public extension NSAttributedString {
         return result
     }
 
-    /// Bear: `enumerateListType:inRange:options:listBlock:listItemBlock:` (type 0 = any, 1 unordered, 2 ordered)
+    /// `enumerateListType:inRange:options:listBlock:listItemBlock:` (type 0 = any, 1 unordered, 2 ordered)
     func enumerateListType(_ type: Int, in range: NSRange, options: NSAttributedString.EnumerationOptions,
                            listBlock: ((NSRange, Int, Int, UnsafeMutablePointer<ObjCBool>) -> Void)?,
                            listItemBlock: ((NSRange, NSRange, PMKListInfo, UnsafeMutablePointer<ObjCBool>) -> Void)?) {
@@ -640,7 +625,7 @@ public extension NSAttributedString {
 
     func rangeOfBlockquoteItem(at index: Int) -> NSRange { rangeOfBlockquoteItem(at: index, markerRange: nil) }
 
-    /// Bear: `rangeOfBlockquoteItemAtIndex:markerRange:` — the item plus following deeper items.
+    /// The item plus following deeper items.
     func rangeOfBlockquoteItem(at index: Int, markerRange: UnsafeMutablePointer<NSRange>?) -> NSRange {
         let notFound = NSRange(location: NSNotFound, length: 0)
         guard index < length else { return notFound }
@@ -663,7 +648,6 @@ public extension NSAttributedString {
         return r
     }
 
-    /// Bear: `rangeOfBlockquoteLevel:atIndex:`
     func rangeOfBlockquoteLevel(_ level: Int, at index: Int) -> NSRange {
         let notFound = NSRange(location: NSNotFound, length: 0)
         guard index < length else { return notFound }
@@ -694,7 +678,6 @@ public extension NSAttributedString {
         }
     }
 
-    /// Bear: `enumerateBlockquoteInRange:options:listBlock:listItemBlock:`
     func enumerateBlockquote(in range: NSRange, options: NSAttributedString.EnumerationOptions,
                              listBlock: ((NSRange, Int, Int, UnsafeMutablePointer<ObjCBool>) -> Void)?,
                              listItemBlock: ((NSRange, NSRange, PMKListInfo, UnsafeMutablePointer<ObjCBool>) -> Void)?) {
@@ -721,7 +704,7 @@ public extension NSAttributedString {
         }
     }
 
-    /// Bear: `enumerateCalloutInRange:options:usingBlock:` — block(calloutRange, markerRange, titleRange, type, stop);
+    /// Block(calloutRange, markerRange, titleRange, type, stop);
     /// a missing title has location NSNotFound.
     func enumerateCallout(in range: NSRange, options: NSAttributedString.EnumerationOptions,
                           using block: (NSRange, NSRange, NSRange, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {
@@ -734,7 +717,6 @@ public extension NSAttributedString {
         }
     }
 
-    /// Bear: `extendRangeToFullyContainBlockquote:`
     func extendRangeToFullyContainBlockquote(_ range: NSRange) -> NSRange {
         guard length != 0 else { return range }
         var out = range
@@ -745,7 +727,7 @@ public extension NSAttributedString {
         return out
     }
 
-    /// Bear: `listOrBlockquoteItemInfoAtIndex:itemRange:markerRange:` — the innermost of the two.
+    /// The innermost of the two.
     func listOrBlockquoteItemInfo(at index: Int, itemRange: UnsafeMutablePointer<NSRange>? = nil, markerRange: UnsafeMutablePointer<NSRange>? = nil) -> PMKListInfo? {
         var listMarker = NSRange(), quoteMarker = NSRange()
         let list = rangeOfListItem(at: index, markerRange: &listMarker)
@@ -767,7 +749,7 @@ public extension NSAttributedString {
         return info
     }
 
-    /// Bear: `isListOrBlockquoteParagraphEmptyAtIndex:` — the paragraph holds only its marker.
+    /// The paragraph holds only its marker.
     func isListOrBlockquoteParagraphEmpty(at index: Int) -> Bool {
         let ns = string as NSString
         guard index <= ns.length else { return true }
