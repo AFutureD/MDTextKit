@@ -72,6 +72,7 @@ public final class MDCalloutIcon {
 /// The `[!TYPE] ` marker becomes icon + "  Label" (label hidden while the
 /// caret edits an untitled head line).
 public final class MDCalloutTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public private(set) var type: Int = 0
     public private(set) var icon: NSImage = NSImage()
     public private(set) var label = NSMutableAttributedString()

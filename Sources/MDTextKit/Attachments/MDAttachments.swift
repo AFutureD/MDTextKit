@@ -16,6 +16,7 @@ private extension CGRect {
 
 /// The stacked bars + level number drawn where "# " was.
 public final class MDATXHeadingAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var color: NSColor?
     public var accentColor: NSColor?
     public var borderWidth: CGFloat = 0
@@ -89,6 +90,7 @@ public final class MDATXHeadingAttachment: SFTextAttachment {
 
 /// The underline drawn for `===` / `---` headings.
 public final class MDSETEXTHeadingAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var lineWidth: CGFloat = 1
     public var lineColor: NSColor?
 
@@ -124,6 +126,7 @@ public final class MDSETEXTHeadingAttachment: SFTextAttachment {
 
 /// Bullet shapes per nesting level (level & 3).
 public final class MDUnorderedListTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var bulletLevel: Int = 0
     public var bulletColor: NSColor?
     public var bulletBorderWidth: CGFloat = 1
@@ -176,10 +179,13 @@ public final class MDUnorderedListTextAttachment: SFTextAttachment {
 }
 
 /// An invisible spacer that right-aligns the number.
-public final class MDOrderedListTextAttachment: SFTextAttachment {}
+public final class MDOrderedListTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
+}
 
 /// The checkbox.
 public final class MDTaskTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var completed = false
     public var borderWidth: CGFloat = 1
     public var borderCompletedWidth: CGFloat = 1
@@ -264,6 +270,7 @@ public final class MDTaskTextAttachment: SFTextAttachment {
 
 /// The horizontal rule.
 public final class MDThematicBreakTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var lineWidth: CGFloat = 1
     public var lineColor: NSColor?
 
@@ -297,6 +304,7 @@ public final class MDThematicBreakTextAttachment: SFTextAttachment {
 
 /// The return-arrow glyph.
 public final class MDHardLineBreakTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var arrowColor: NSColor?
     public override func drawAttachment(in rect: CGRect) {
         MDTextKitStyleKit.drawHardLineBreak(frame: rect.pixelFloorCeil, fillColor: arrowColor ?? .black)
@@ -308,6 +316,7 @@ public final class MDHardLineBreakTextAttachment: SFTextAttachment {
 
 /// The marker-pen icon next to a highlighter.
 public final class MDHighlighterTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var color: NSColor?
     public var accentColor: NSColor?
     public override func drawAttachment(in rect: CGRect) {
@@ -320,6 +329,7 @@ public final class MDHighlighterTextAttachment: SFTextAttachment {
 
 /// The link icon that replaces the URL part of `[label](url)`.
 public final class MDLinkTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var color: NSColor?
 
     public override func drawAttachment(in rect: CGRect) {
@@ -350,6 +360,7 @@ public final class MDLinkTextAttachment: SFTextAttachment {
 
 /// Draws an NSImage with margins.
 public final class MDIconTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var icon: NSImage?
 
     public convenience init(icon: NSImage, leftMargin: CGFloat, rightMargin: CGFloat, baselineOffset: CGFloat) {
@@ -369,6 +380,7 @@ public final class MDIconTextAttachment: SFTextAttachment {
 
 /// Optional icon in front of a tag.
 public final class MDHashtagIconTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var icon: NSImage?
     public override func drawAttachment(in rect: CGRect) { icon?.draw(in: rect) }
     public override func copyAttachment() -> Self { let c = super.copyAttachment(); c.icon = icon; return c }
@@ -376,25 +388,35 @@ public final class MDHashtagIconTextAttachment: SFTextAttachment {
 
 /// Replaces "> "; draws nothing (the bar is drawn by the layout manager).
 public final class MDBlockQuoteTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public override func drawAttachment(in rect: CGRect) {}
 }
 
 /// Replaces leading tabs of nested items; width = indent units * tab size.
-public final class MDIndentSpaceTextAttachment: SFTextAttachment {}
+public final class MDIndentSpaceTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
+}
 
 /// Zero-text boundary spacer around inline code.
-public final class MDCodeTextAttachment: SFTextAttachment {}
+public final class MDCodeTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
+}
 
 /// Zero-text boundary spacer around a tag pill.
-public final class MDTagTextAttachment: SFTextAttachment {}
+public final class MDTagTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
+}
 
 /// Zero-text boundary spacer around a highlight.
-public final class MDHighlighterSpacerTextAttachment: SFTextAttachment {}
+public final class MDHighlighterSpacerTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
+}
 
 /// Inline image preview. The host resolves the
 /// markdown path to a file; the image is downsampled to the line width × screen
 /// scale and laid out at its pixel size, then fitted to the available width (asm @0x1bda0).
 public final class MDImageTextAttachment: SFTextAttachmentFileBackedView {
+    public override class var supportsSecureCoding: Bool { true }
     public var maxTextContainerWidth: CGFloat = 0
     public var alwaysUseFullWidth = false
     public var resolvedFileURL: URL?
@@ -461,6 +483,7 @@ public final class MDImageTextAttachment: SFTextAttachmentFileBackedView {
 /// Rounded pill (radius h/4) with three dots; `collapsedRange` is relative to
 /// `representedAttributedText` (marker length … folded length).
 public final class MDFoldTextAttachment: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public var collapsedRange = NSRange(location: NSNotFound, length: 0)
     public var textColor: NSColor?
     public var backgroundColor: NSColor?
@@ -507,6 +530,7 @@ public final class MDFoldTextAttachment: SFTextAttachment {
 
 /// Width is clamped to the available line width.
 public final class MDTableTextAttachment: SFTextAttachmentView {
+    public override class var supportsSecureCoding: Bool { true }
     public var maxTextContainerWidth: CGFloat = 0
 
     public override func attachmentBounds(for textContainer: NSTextContainer?, proposedLineFragment lineFrag: CGRect, glyphPosition position: CGPoint,

@@ -29,7 +29,7 @@ public final class MDTextContainer: NSTextContainer {
 
 /// TextKit 1 layout manager that draws the block/inline backgrounds and keeps
 /// baselines steady around attachments.
-public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
+public final class MDLayoutManager: NSLayoutManager, @MainActor NSLayoutManagerDelegate {
     public var showBackgroundGrid = false
     public var preventAttachmentViewFromRearranging = false
     public var styledRange = NSNotFoundRange
@@ -149,8 +149,12 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
             let size = self.attachmentSize(forGlyphAt: g.location)
             if size.width == 1, size.height == 1 { return }
             let frame = CGRect(x: CGFloat(Int(line.minX + origin.x + loc.x)), y: CGFloat(Int(origin.y + line.minY + loc.y - size.height)), width: size.width, height: size.height)
-            if controller.view.superview == nil, let tv = self.firstTextView { tv.addSubview(controller.view) }
-            if controller.view.frame != frame { controller.view.frame = frame }
+            let textView = self.firstTextView
+            // NSLayoutManager draws on the main thread; the attachment's view is main-actor.
+            MainActor.assumeIsolated {
+                if controller.view.superview == nil, let textView { textView.addSubview(controller.view) }
+                if controller.view.frame != frame { controller.view.frame = frame }
+            }
         }
     }
 
@@ -573,7 +577,7 @@ public final class MDLayoutManager: NSLayoutManager, NSLayoutManagerDelegate {
 }
 
 /// Which corners to round — UIRectCorner-style masks (topLeft 1, topRight 2, bottomLeft 4, bottomRight 8).
-public struct RectCorners: OptionSet {
+public struct RectCorners: OptionSet, Sendable {
     public let rawValue: Int
     public init(rawValue: Int) { self.rawValue = rawValue }
     public static let topLeft = RectCorners(rawValue: 1)

@@ -6,7 +6,7 @@ import TextBundle
 
 /// Builds the editor, pushes the theme into the stylers and the
 /// layout manager, and exposes the format commands.
-public final class MDEditorViewController: NSViewController, SFStylable {
+@MainActor public final class MDEditorViewController: NSViewController, SFStylable {
     public private(set) var textView: MDTextView!
     public private(set) var scrollView: NSScrollView!
     public private(set) var bottomBar: MDEditorBottomBar!
@@ -14,14 +14,11 @@ public final class MDEditorViewController: NSViewController, SFStylable {
     public let editorController = MDEditorController()
     public let themeManager: SFThemeManager
     private var pendingMarkdown: String?
-    public let tableRenderer = MDTableAttachmentRenderer()
-    /// The host keeps the attachment view controllers alive (`attachmentViewController` is weak).
-    private var attachmentControllers: [ObjectIdentifier: (controller: NSViewController, attachment: SFTextAttachment)] = [:]
-    private var attachmentPruneObserver: NSObjectProtocol?
+    public var tableRenderer: MDTableAttachmentRenderer { textView.tableRenderer }
     /// Base folder for relative image paths (the note file's folder, or the TextBundle).
     public var documentBaseURL: URL?
 
-    public init(themeManager: SFThemeManager = .shared) {
+    public init(themeManager: SFThemeManager) {
         self.themeManager = themeManager
         super.init(nibName: nil, bundle: nil)
     }
@@ -56,27 +53,9 @@ public final class MDEditorViewController: NSViewController, SFStylable {
         container.addSubview(bottomBar)
         view = container
         editorController.autoHideMarkdown = true
-        // Host hooks: image files and table rendering are provided by the UI layer.
-        tableRenderer.editorController = editorController
-        // NoteEditorCoreViewController.maxAvailableTextContainerWidth(for:) = textContainerMaxWidth − 2 × defaultParagraphIndent
-        tableRenderer.maxAvailableWidth = { [weak self] in
-            guard let self = self else { return 500 }
-            let r = self.editorController.attributedStringRenderer
-            return r.textContainerMaxWidth - 2 * r.defaultParagraphIndent
-        }
-        editorController.attributedStringRenderer.tableStyler.attachmentRenderer = { [weak self] att in
-            guard let self = self else { return }
-            self.tableRenderer.render(att)
-            // MDAttachmentCoreViewController.viewController(for:…) — a live table editor per attachment.
-            let vc = MDTableAttachmentViewController(attachment: att, hostTextView: self.textView, editorController: self.editorController,
-                                                     gridRenderer: self.tableRenderer, themeManager: self.themeManager)
-            att.attachmentViewController = vc
-            _ = vc.view
-            self.attachmentControllers[ObjectIdentifier(att)] = (vc, att)
-        }
-        attachmentPruneObserver = NotificationCenter.default.addObserver(forName: MDTextViewTextDidChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.pruneAttachmentControllers() }
-        editorController.attributedStringRenderer.imageStyler.fileResolver = { [weak self] path in
-            guard let self = self else { return nil }
+        textView.installTableEditing(themeManager: themeManager)
+        textView.imageFileResolver = { [weak self] path in
+            guard let self else { return nil }
             if let bundle = self.textBundle, let base = bundle.url { return base.appendingPathComponent(path) }
             return self.documentBaseURL?.appendingPathComponent(path)
         }
@@ -141,35 +120,11 @@ public final class MDEditorViewController: NSViewController, SFStylable {
     }
 
     private func applyTheme(_ tm: SFThemeManager) {
-        let r = editorController.attributedStringRenderer
-        r.styleObject(with: tm)
-        tableRenderer.style(with: tm)
-        textView.mdTextContainer.style(with: r, themeManager: tm)
-        textView.mdLayoutManager.style(with: r, themeManager: tm)
-        textView.typingAttributes = r.defaultTextAttributes
-        textView.backgroundColor = tm.color(forKey: "base.background color", default: .white)
-        textView.linkTextAttributes = [.cursor: NSCursor.pointingHand]
-        let cursor = tm.color(forKey: "editor.cursor color", default: .textColor)
-        let selection = tm.color(forKey: "editor.selection color", default: .selectedTextBackgroundColor)
-        textView.insertionPointColor = cursor
-        sideActions?.fontSize = r.defaultFontSize
+        textView.applyTheme(tm)
+        sideActions?.fontSize = editorController.attributedStringRenderer.defaultFontSize
         sideActions?.buttonColor = tm.color(forKey: "base.text secondary color", default: .systemGray).withAlphaComponent(0.7)
         sideActions?.accentColor = tm.color(forKey: "base.accent color", default: .systemRed)
-        textView.selectedTextAttributes = [.backgroundColor: selection.withAlphaComponent(0.7), .foregroundColor: tm.color(forKey: "editor.text color", default: .textColor)]
         scrollView.backgroundColor = textView.backgroundColor
-    }
-
-    /// Drops controllers whose attachment is no longer in the text storage.
-    private func pruneAttachmentControllers() {
-        guard let ts = textView?.mdTextStorage else { return }
-        var live = Set<ObjectIdentifier>()
-        ts.enumerateAttribute(.attachment, in: NSRange(location: 0, length: ts.length), options: []) { v, _, _ in
-            if let a = v as? SFTextAttachmentView { live.insert(ObjectIdentifier(a)) }
-        }
-        for key in attachmentControllers.keys where !live.contains(key) {
-            attachmentControllers[key]?.controller.view.removeFromSuperview()
-            attachmentControllers.removeValue(forKey: key)
-        }
     }
 
     /// Copies a file next to the note (TextBundle assets or an `assets` folder) and returns its relative path.
@@ -272,6 +227,6 @@ public final class MDEditorViewController: NSViewController, SFStylable {
 }
 
 /// Hosts the scroll view and the floating bottom bar.
-final class MDEditorContainerView: NSView {
+@MainActor final class MDEditorContainerView: NSView {
     override var isFlipped: Bool { false }
 }

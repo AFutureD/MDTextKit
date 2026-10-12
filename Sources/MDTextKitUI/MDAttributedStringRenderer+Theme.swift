@@ -194,14 +194,14 @@ public extension MDAttributedStringRenderer {
 }
 
 public extension MDTextContainer {
-    func style(with renderer: MDAttributedStringRenderer, themeManager: SFThemeManager) {
+    @MainActor func style(with renderer: MDAttributedStringRenderer, themeManager: SFThemeManager) {
         maxColumSize = renderer.textContainerMaxWidth
         minInset = renderer.textContainerMinInset
     }
 }
 
 public extension MDLayoutManager {
-    func style(with renderer: MDAttributedStringRenderer, themeManager tm: SFThemeManager) {
+    @MainActor func style(with renderer: MDAttributedStringRenderer, themeManager tm: SFThemeManager) {
         if let f = renderer.defaultTextAttributes[.font] as? NSFont { defaultFont = f }
         defaultLineSpacing = renderer.defaultLineSpacing
         defaultParagraphIndent = renderer.defaultParagraphIndent
@@ -230,7 +230,7 @@ extension NSImage {
 
 /// Callout colour derivation (MDTextKitUI, `styleObject` for the blockquote styler).
 enum MDCalloutPalette {
-    static func colors(themeManager tm: SFThemeManager) -> [Int: [String: NSColor]] {
+    @MainActor static func colors(themeManager tm: SFThemeManager) -> [Int: [String: NSColor]] {
         let white = NSColor(red: 1, green: 1, blue: 1, alpha: 1)
         let isLight = tm.color(forKey: "editor.background color", default: white).isLightColor
         let table: [(String, Int)] = [("blue", 0), ("green", 1), ("purple", 2), ("yellow", 3), ("red", 4)]

@@ -4,7 +4,7 @@ import PolarMark
 import SFThemeKit
 
 /// Rows of cells (header first, no delimiter row) plus column alignments.
-public final class MDTableDataModel {
+@MainActor public final class MDTableDataModel {
     public typealias Cell = MDTableAttachmentRenderer.Cell
     public var rows: [[Cell]]
     public var alignments: [Int]
@@ -97,7 +97,7 @@ public final class MDTableDataModel {
 }
 
 /// The per-cell editor (inline-only parsing).
-final class MDTableCellTextView: MDTextView {
+@MainActor final class MDTableCellTextView: MDTextView {
     weak var controller: MDTableAttachmentViewController?
     var indexPath = (row: 0, column: 0)
 
@@ -133,8 +133,8 @@ final class MDTableCellTextView: MDTextView {
 
     override func resignFirstResponder() -> Bool {
         let ok = super.resignFirstResponder()
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self, self.window?.firstResponder !== self else { return }
+        Task { @MainActor [weak self] in
+            guard let self, self.window?.firstResponder !== self else { return }
             if !(self.window?.firstResponder is MDTableCellTextView) { self.controller?.endEditing(returnFocus: false) }
         }
         return ok
@@ -142,12 +142,12 @@ final class MDTableCellTextView: MDTextView {
 }
 
 /// The cell editor's scroll view hands wheel events to the note.
-final class MDTableCellScrollView: NSScrollView {
+@MainActor final class MDTableCellScrollView: NSScrollView {
     override func scrollWheel(with event: NSEvent) { nextResponder?.scrollWheel(with: event) }
 }
 
 /// The grid image plus hover "more" button and cell hit-testing.
-final class MDTableAttachmentView: NSView {
+@MainActor final class MDTableAttachmentView: NSView {
     weak var controller: MDTableAttachmentViewController?
     var image: NSImage? { didSet { needsDisplay = true } }
     let moreButton = NSButton(image: NSImage(systemSymbolName: "ellipsis", accessibilityDescription: "Table options")!, target: nil, action: nil)
@@ -194,7 +194,7 @@ final class MDTableAttachmentView: NSView {
 
 /// `TableAttachmentViewController` (+ core) — owns the model, the grid view, the cell editor and the
 /// debounced write-back of the markdown into the attachment.
-public final class MDTableAttachmentViewController: NSViewController {
+@MainActor public final class MDTableAttachmentViewController: NSViewController {
     public weak var textAttachment: MDTableTextAttachment?
     public weak var hostTextView: MDTextView?
     public weak var hostEditorController: MDEditorController?
@@ -207,7 +207,7 @@ public final class MDTableAttachmentViewController: NSViewController {
     private let cellEditorController = MDEditorController()
     private var cellScrollView: NSScrollView?
     private var cellTextView: MDTableCellTextView?
-    private var saveTimer: Timer?
+    private var saveTask: Task<Void, Never>?
     private var tableView: MDTableAttachmentView { view as! MDTableAttachmentView }
 
     public init(attachment: MDTableTextAttachment, hostTextView: MDTextView, editorController: MDEditorController, gridRenderer: MDTableAttachmentRenderer, themeManager: SFThemeManager) {
@@ -333,7 +333,7 @@ public final class MDTableAttachmentViewController: NSViewController {
         tableView.addSubview(sv, positioned: .below, relativeTo: tableView.moreButton)
         cellScrollView = sv
         cellTextView = tv
-        let became = tv.window?.makeFirstResponder(tv) ?? false
+        _ = tv.window?.makeFirstResponder(tv)
         if let p = clickPoint {
             let local = tv.convert(p, from: tableView)
             let idx = tv.characterIndexForInsertion(at: local)
@@ -392,9 +392,13 @@ public final class MDTableAttachmentViewController: NSViewController {
     // MARK: Write-back
 
     func writeBack(debounce: Bool) {
-        saveTimer?.invalidate(); saveTimer = nil
+        saveTask?.cancel(); saveTask = nil
         if debounce {
-            saveTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in self?.writeBack(debounce: false) }
+            saveTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                self?.writeBack(debounce: false)
+            }
             return
         }
         guard let att = textAttachment, let host = hostTextView, let ec = hostEditorController else { return }

@@ -5,11 +5,11 @@ import AppKit
 @testable import SFThemeKit
 
 /// Debug helper: dumps line fragments of the sample note so they can be compared with reference captures.
-final class MDLayoutDumpTests: XCTestCase {
+@MainActor final class MDLayoutDumpTests: XCTestCase {
     func testDumpSampleLayout() throws {
         guard ProcessInfo.processInfo.environment["MD_DUMP"] != nil else { return }
-        SFThemeManager.shared.overrides["editor.text size"] = 16.0
-        let vc = MDEditorViewController()
+        TestTheme.makeManager().overrides["editor.text size"] = 16.0
+        let vc = MDEditorViewController(themeManager: TestTheme.makeManager())
         vc.loadView()
         vc.viewDidLoad()
         vc.view.frame = NSRect(x: 0, y: 0, width: 708, height: 748)

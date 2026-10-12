@@ -1,7 +1,7 @@
 import AppKit
 import PolarMark
 
-public final class MDTextOperationResult: NSObject {
+@MainActor public final class MDTextOperationResult: NSObject {
     public var replacementAttributedString: NSAttributedString?
     public var replacementRange = NSNotFoundRange
     public var proposedSelectionRange = NSNotFoundRange
@@ -13,7 +13,7 @@ public final class MDTextOperationResult: NSObject {
 }
 
 /// Operations triggered by commands.
-open class MDBaseTextOperation: NSObject {
+@MainActor open class MDBaseTextOperation: NSObject {
     open func result(forAttributedString s: NSAttributedString, in range: NSRange, selectionRange: NSRange) -> MDTextOperationResult? { nil }
     open func results(forAttributedString s: NSAttributedString, in range: NSRange, selectionRange: NSRange) -> [MDTextOperationResult] {
         guard let r = result(forAttributedString: s, in: range, selectionRange: selectionRange) else { return [] }
@@ -22,12 +22,12 @@ open class MDBaseTextOperation: NSObject {
 }
 
 /// Operations consulted on every keystroke.
-open class MDBaseEditTextOperation: NSObject {
+@MainActor open class MDBaseEditTextOperation: NSObject {
     open func results(forEditIn range: NSRange, replacementString: String, attributedString s: NSAttributedString, selectionRange: NSRange) -> [MDTextOperationResult]? { nil }
 }
 
 /// Backspace on a spacer removes the whole spacer pair.
-public final class MDDeleteSpacerTextOperation: MDBaseEditTextOperation {
+@MainActor public final class MDDeleteSpacerTextOperation: MDBaseEditTextOperation {
     public override func results(forEditIn range: NSRange, replacementString: String, attributedString s: NSAttributedString, selectionRange: NSRange) -> [MDTextOperationResult]? {
         guard range.length == 1, replacementString == "", range.location < s.length,
               s.attribute(.mdSpacer, at: range.location, effectiveRange: nil) != nil else { return nil }
@@ -42,7 +42,7 @@ public final class MDDeleteSpacerTextOperation: MDBaseEditTextOperation {
 }
 
 /// Backspace on a tag spacer selects the whole tag.
-public final class MDDeleteTagSpacerTextOperation: MDBaseEditTextOperation {
+@MainActor public final class MDDeleteTagSpacerTextOperation: MDBaseEditTextOperation {
     public override func results(forEditIn range: NSRange, replacementString: String, attributedString s: NSAttributedString, selectionRange: NSRange) -> [MDTextOperationResult]? {
         guard range.length == 1, replacementString == "", range.location < s.length,
               s.attribute(.mdSpacer, at: range.location, effectiveRange: nil) != nil,
@@ -56,7 +56,7 @@ public final class MDDeleteTagSpacerTextOperation: MDBaseEditTextOperation {
 }
 
 /// Typing a space/newline on the tag's closing spacer inserts after the spacer.
-public final class MDExitTagTextOperation: MDBaseEditTextOperation {
+@MainActor public final class MDExitTagTextOperation: MDBaseEditTextOperation {
     public override func results(forEditIn range: NSRange, replacementString: String, attributedString s: NSAttributedString, selectionRange: NSRange) -> [MDTextOperationResult]? {
         guard range.length == 0, range.location < s.length, replacementString == " " || replacementString == "\n",
               s.attribute(.mdSpacer, at: range.location, effectiveRange: nil) != nil,
@@ -71,7 +71,7 @@ public final class MDExitTagTextOperation: MDBaseEditTextOperation {
 
 /// A space typed right before a closing inline marker
 /// is inserted with the marker's own attributes (minus the attachment) and without re-styling.
-public final class MDPreventInlineStyleInvalidationTextOperation: MDBaseEditTextOperation {
+@MainActor public final class MDPreventInlineStyleInvalidationTextOperation: MDBaseEditTextOperation {
     public override func results(forEditIn range: NSRange, replacementString: String, attributedString s: NSAttributedString, selectionRange: NSRange) -> [MDTextOperationResult]? {
         guard range.location != 0, range.length == 0, range.location < s.length, replacementString == " ",
               s.inlineClosingMarkerRange(at: range.location).location == range.location,
@@ -88,7 +88,7 @@ public final class MDPreventInlineStyleInvalidationTextOperation: MDBaseEditText
 }
 
 /// A straight quote typed right after an opening marker/attachment stays straight.
-public final class MDFixSmartQuoteTextOperation: MDBaseEditTextOperation {
+@MainActor public final class MDFixSmartQuoteTextOperation: MDBaseEditTextOperation {
     public override func results(forEditIn range: NSRange, replacementString: String, attributedString s: NSAttributedString, selectionRange: NSRange) -> [MDTextOperationResult]? {
         guard range.location != 0, NSMaxRange(range) < s.length, replacementString == "\u{201C}" || replacementString == "\u{201D}" else { return nil }
         let ns = s.string as NSString
@@ -103,7 +103,7 @@ public final class MDFixSmartQuoteTextOperation: MDBaseEditTextOperation {
 }
 
 /// Typing a delimiter with a selection wraps the selection.
-public final class MDWrapSelectionTextOperation: MDBaseEditTextOperation {
+@MainActor public final class MDWrapSelectionTextOperation: MDBaseEditTextOperation {
     public func closingDelimiter(forOpeningDelimiter opening: String) -> String? {
         switch opening {
         case "*": return "*"
@@ -139,7 +139,7 @@ public final class MDWrapSelectionTextOperation: MDBaseEditTextOperation {
 }
 
 /// Typing next to a table keeps it on its own lines.
-public final class MDPreventTableInvalidationTextOperation: MDBaseEditTextOperation {
+@MainActor public final class MDPreventTableInvalidationTextOperation: MDBaseEditTextOperation {
     public override func results(forEditIn range: NSRange, replacementString: String, attributedString s: NSAttributedString, selectionRange: NSRange) -> [MDTextOperationResult]? {
         let end = NSMaxRange(range)
         let ns = s.string as NSString
@@ -179,7 +179,7 @@ public final class MDPreventTableInvalidationTextOperation: MDBaseEditTextOperat
 }
 
 /// Moves completed tasks below the open ones, level by level.
-public final class MDOrderTaskListTextOperation: MDBaseTextOperation {
+@MainActor public final class MDOrderTaskListTextOperation: MDBaseTextOperation {
     public override func result(forAttributedString s: NSAttributedString, in range: NSRange, selectionRange: NSRange) -> MDTextOperationResult? {
         let region = range.length == 0 ? NSRange(location: 0, length: s.length) : s.extendRangeToFullyContainLists(range)
         let source = s.attributedSubstring(from: region)
@@ -227,7 +227,7 @@ public final class MDOrderTaskListTextOperation: MDBaseTextOperation {
 
 /// Moves `dragRange` to `destinationRange`, optionally as its own line and
 /// re-indented to the destination list level.
-public final class MDDragTextOperation: NSObject {
+@MainActor public final class MDDragTextOperation: NSObject {
     public func result(forAttributedString s: NSAttributedString, dragRange: NSRange, destinationRange: NSRange, selectionRange: NSRange, dropAsNewLine: Bool) -> MDTextOperationResult? {
         let union = NSUnionRange(dragRange, destinationRange)
         let dragOffset = dragRange.location - union.location
@@ -277,7 +277,7 @@ public final class MDDragTextOperation: NSObject {
 }
 
 /// Runs the edit operations in order; the first one that answers wins.
-public final class MDEditorBehaviourController: NSObject {
+@MainActor public final class MDEditorBehaviourController: NSObject {
     public var processInlinesOnly = false { didSet { setupEditOperations() } }
     public private(set) var editOperations: [MDBaseEditTextOperation] = []
 

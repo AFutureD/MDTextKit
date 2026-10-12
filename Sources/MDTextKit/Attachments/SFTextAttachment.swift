@@ -38,7 +38,8 @@ open class SFTextAttachment: NSTextAttachment {
     }
 
     open func commonInit() {
-        attachmentCell = SFTextAttachmentCell()
+        // TextKit builds attachments on the main thread; NSCell is main-actor and the attachment is not.
+        attachmentCell = MainActor.assumeIsolated { SFTextAttachmentCell() }
     }
 
     /// The markdown behind this attachment (expanding nested attachments).
@@ -172,8 +173,10 @@ open class SFTextAttachment: NSTextAttachment {
 }
 
 /// Delegates size and drawing to the attachment.
-public final class SFTextAttachmentCell: NSTextAttachmentCell {
-    private var sfAttachment: SFTextAttachment? { attachment as? SFTextAttachment }
+public final class SFTextAttachmentCell: NSTextAttachmentCell, @MainActor NSSecureCoding {
+    public nonisolated static var supportsSecureCoding: Bool { true }
+
+    private nonisolated var sfAttachment: SFTextAttachment? { attachment as? SFTextAttachment }
 
     public override func cellFrame(for textContainer: NSTextContainer, proposedLineFragment lineFrag: NSRect,
                                    glyphPosition position: NSPoint, characterIndex charIndex: Int) -> NSRect {
@@ -195,6 +198,7 @@ public final class SFTextAttachmentCell: NSTextAttachmentCell {
 /// Backed by a real NSView (tables, math,
 /// previews). Draws a temporary image while the view is not on screen.
 open class SFTextAttachmentView: SFTextAttachment {
+    public override class var supportsSecureCoding: Bool { true }
     public weak var attachmentViewController: NSViewController?
     public var temporaryImage: NSImage?
 
@@ -212,6 +216,7 @@ open class SFTextAttachmentView: SFTextAttachment {
 
 /// Images and files.
 open class SFTextAttachmentFileBackedView: SFTextAttachmentView {
+    public override class var supportsSecureCoding: Bool { true }
     public private(set) var filePath: String?
 
     public required init(representedAttributedText: NSAttributedString?) { super.init(representedAttributedText: representedAttributedText) }

@@ -2,7 +2,7 @@ import AppKit
 
 /// Native floating format toolbar (bottom-right of the editor): a vibrancy-backed pill of bordered
 /// symbol buttons wired to the editor's format actions.
-public final class MDEditorBottomBar: NSVisualEffectView {
+@MainActor public final class MDEditorBottomBar: NSVisualEffectView {
     public struct Item {
         public let symbol: String
         public let tooltip: String

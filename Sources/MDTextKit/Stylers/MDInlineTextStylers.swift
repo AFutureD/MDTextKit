@@ -4,7 +4,7 @@ import PolarMark
 // Inline stylers, each a faithful port of the decompiled MDTextKit class of the same name.
 
 /// Bold trait on content + markers, marker colour on the markers.
-public final class MDStrongTextStyler: MDBaseTextStyler {
+@MainActor public final class MDStrongTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         s.enumerateStrong(in: range, options: []) { content, opening, closing, _ in
             guard content.length != 0 else { return }
@@ -19,7 +19,7 @@ public final class MDStrongTextStyler: MDBaseTextStyler {
 }
 
 /// Italic variant per font run, skew fallback, marker colour.
-public final class MDEmphasisTextStyler: MDBaseTextStyler {
+@MainActor public final class MDEmphasisTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         s.enumerateEmphasis(in: range, options: []) { content, opening, closing, _ in
             guard content.length != 0 else { return }
@@ -42,7 +42,7 @@ public final class MDEmphasisTextStyler: MDBaseTextStyler {
     }
 }
 
-public final class MDStrikethroughTextStyler: MDBaseTextStyler {
+@MainActor public final class MDStrikethroughTextStyler: MDBaseTextStyler {
     public var textColor: NSColor = .black
 
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
@@ -56,7 +56,7 @@ public final class MDStrikethroughTextStyler: MDBaseTextStyler {
     }
 }
 
-public final class MDUnderlineTextStyler: MDBaseTextStyler {
+@MainActor public final class MDUnderlineTextStyler: MDBaseTextStyler {
     public var underlineColor: NSColor = .black
 
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
@@ -71,7 +71,7 @@ public final class MDUnderlineTextStyler: MDBaseTextStyler {
 }
 
 /// Code font on the content, text attributes on the whole span, boundary spacers.
-public final class MDCodeTextStyler: MDBaseTextStyler {
+@MainActor public final class MDCodeTextStyler: MDBaseTextStyler {
     public var textAttributes: [NSAttributedString.Key: Any] = [:]
     public var codeFont: NSFont = .systemFont(ofSize: 14)
     public var fontSizeMultiplier: CGFloat = 1
@@ -94,7 +94,7 @@ public final class MDCodeTextStyler: MDBaseTextStyler {
 }
 
 /// `[label](url)`: label becomes a clickable link, the URL part becomes an icon attachment.
-public final class MDLinkTextStyler: MDBaseTextStyler {
+@MainActor public final class MDLinkTextStyler: MDBaseTextStyler {
     public var linkColor: NSColor = .black
     public var attachmentColor: NSColor?
     public var disablePreview = false
@@ -154,7 +154,7 @@ public final class MDLinkTextStyler: MDBaseTextStyler {
 }
 
 /// `![alt](path)` becomes an inline image attachment.
-public final class MDImageTextStyler: MDBaseTextStyler {
+@MainActor public final class MDImageTextStyler: MDBaseTextStyler {
     /// Host hook: markdown path → file URL.
     public var fileResolver: ((String) -> URL?)?
 
@@ -184,7 +184,7 @@ public final class MDImageTextStyler: MDBaseTextStyler {
 }
 
 /// Tag pill: background colour, text/hash colours, optional link and icon, spacers.
-public final class MDHashtagTextStyler: MDBaseTextStyler {
+@MainActor public final class MDHashtagTextStyler: MDBaseTextStyler {
     public var backgroundColor: NSColor = .black
     public var textColor: NSColor = .black
     public var hashColor: NSColor = .black
@@ -237,7 +237,7 @@ public final class MDHashtagTextStyler: MDBaseTextStyler {
 }
 
 /// Bare URLs and e-mails become links.
-public final class MDAutoLinkTextStyler: MDBaseTextStyler {
+@MainActor public final class MDAutoLinkTextStyler: MDBaseTextStyler {
     public var linkColor: NSColor = .black
     public var attachmentColor: NSColor?
 
@@ -271,7 +271,7 @@ public final class MDAutoLinkTextStyler: MDBaseTextStyler {
 }
 
 /// `==text==` with six colour slots.
-public final class MDHighlighterTextStyler: MDBaseTextStyler {
+@MainActor public final class MDHighlighterTextStyler: MDBaseTextStyler {
     public var textColors: [NSColor] = Array(repeating: .black, count: 6)
     public var backgroundColors: [NSColor] = Array(repeating: .green, count: 6)
 
@@ -334,7 +334,7 @@ public final class MDHighlighterTextStyler: MDBaseTextStyler {
 }
 
 /// The backslash gets the marker colour and never becomes a link.
-public final class MDEscapeTextStyler: MDBaseTextStyler {
+@MainActor public final class MDEscapeTextStyler: MDBaseTextStyler {
     public override func styleText(in s: NSMutableAttributedString, range: NSRange, replacementBlock: @escaping MDStylerReplacementBlock) {
         s.enumerateEscape(in: range, options: []) { run, _ in
             s.addAttribute(.foregroundColor, value: self.markerColor, range: run)
@@ -344,12 +344,12 @@ public final class MDEscapeTextStyler: MDBaseTextStyler {
 }
 
 // Inline stylers whose features are not part of this port keep their place in the pipeline.
-public final class MDColorTextStyler: MDBaseTextStyler {}
-public final class MDArrowTextStyler: MDBaseTextStyler {}
-public final class MDHTMLTextStyler: MDBaseTextStyler {}
-public final class MDSyntaxHighlightTextStyler: MDBaseTextStyler {}
-public final class MDReferenceTextStyler: MDBaseTextStyler {}
-public final class MDFileTextStyler: MDBaseTextStyler {}
-public final class MDFootnoteTextStyler: MDBaseTextStyler {}
-public final class MDWikiLinkTextStyler: MDBaseTextStyler {}
-public final class MDMathTextStyler: MDBaseTextStyler {}
+@MainActor public final class MDColorTextStyler: MDBaseTextStyler {}
+@MainActor public final class MDArrowTextStyler: MDBaseTextStyler {}
+@MainActor public final class MDHTMLTextStyler: MDBaseTextStyler {}
+@MainActor public final class MDSyntaxHighlightTextStyler: MDBaseTextStyler {}
+@MainActor public final class MDReferenceTextStyler: MDBaseTextStyler {}
+@MainActor public final class MDFileTextStyler: MDBaseTextStyler {}
+@MainActor public final class MDFootnoteTextStyler: MDBaseTextStyler {}
+@MainActor public final class MDWikiLinkTextStyler: MDBaseTextStyler {}
+@MainActor public final class MDMathTextStyler: MDBaseTextStyler {}

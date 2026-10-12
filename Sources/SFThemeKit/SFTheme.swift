@@ -1,7 +1,9 @@
 import AppKit
 
 /// A JSON document where string values may reference other
-/// values with `$a.b.c` (keys may contain spaces).
+/// values with `$a.b.c` (keys may contain spaces). A colour value is a hex string or an `NSColor`,
+/// so a host can hand in dynamic colours that follow the appearance.
+@MainActor
 public final class SFTheme {
     public let name: String
     public private(set) var root: [String: Any]
@@ -77,7 +79,10 @@ public final class SFTheme {
     }
 
     public func color(forKeyPath path: String) -> NSColor? {
-        guard let s = string(forKeyPath: path) else { return nil }
-        return SFTheme.color(fromHex: s)
+        switch value(forKeyPath: path) {
+        case let c as NSColor: return c
+        case let s as String: return SFTheme.color(fromHex: s)
+        default: return nil
+        }
     }
 }

@@ -3,9 +3,9 @@ import AppKit
 @testable import MDTextKit
 @testable import MDTextKitUI
 
-final class MDFontTests: XCTestCase {
+@MainActor final class MDFontTests: XCTestCase {
     func testInlineStylesUseRealFacesAtBodySize() {
-        let vc = MDEditorViewController()
+        let vc = MDEditorViewController(themeManager: TestTheme.makeManager())
         _ = vc.view
         vc.load(markdown: "a *b* c **d** `e`")
         let ts = vc.textView.mdTextStorage

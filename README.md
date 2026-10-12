@@ -1,6 +1,6 @@
 # MDTextKit
 
-A Markdown editor engine for macOS written in Swift (SwiftPM, macOS 13+, TextKit 1):
+A Markdown editor engine for macOS written in Swift (SwiftPM, macOS 26+, Swift 6, TextKit 1):
 `PolarMark` (parser + AST) → `MDTextKit` (text storage, stylers, layout) → `MDTextKitUI` (text view, editor controller).
 The storage string is always the Markdown source; markers are hidden until the caret enters a construct, and block
 decorations (bullets, checkboxes, rules, fold pills, tables, images, callout icons) are text attachments drawn by the kit.
@@ -11,8 +11,8 @@ decorations (bullets, checkboxes, rules, fold pills, tables, images, callout ico
 |---|---|
 | `PolarMark` | Block + inline parser, AST, annotated string with `PMK*` attribute keys, structural operations (`toggleInlineStyle`, `toggleBlockStyle`, `insertNewline`, `indent`, `toggleTask`, folding, selection / paste corrections). `replaceRange(_:withMarkdown:)` reports the block-aligned range that must be re-styled. |
 | `MDTextKit` | `MDTextStorage` (string is always Markdown, attachment index map), `MDAttributedStringRenderer` with the styler pipeline, `MDMarkdownHider` (0.01pt placeholder font + `MDOriginalAttributes`), `MDLayoutManager` (block backgrounds, quote bars, callout boxes, selection), `MDTextContainer` (centered column), `MDEditorController` (undo-aware text operations). |
-| `MDTextKitUI` | `MDTextView` (attachment clicks, undo manager, pasteboard, drag and drop), `MDEditorViewController` (assembly, theme changes, TextBundle open/save, bottom format bar, fold gutter), table cell editing, image loading. |
-| `SFThemeKit` | JSON `.theme` files with `$a.b.c` references, `SFThemeManager` + `SFStylable`, per-process font registration. Bundled themes: `Default`, `Dark`. |
+| `MDTextKitUI` | `MDTextView` (attachment clicks, undo manager, pasteboard, drag and drop, `applyTheme`, `installTableEditing`, `imageFileResolver`, `openURL`), `MDEditorViewController` (assembly, theme changes, TextBundle open/save, bottom format bar, fold gutter), table cell editing, image loading. |
+| `SFThemeKit` | JSON `.theme` files with `$a.b.c` references, `SFThemeManager` + `SFStylable`, per-process font registration. A theme value may also be an `NSColor`, so a host passes dynamic colours. The kit bundles no theme; the demo ships `Default` and `Dark`. |
 | `TextBundle` | `.textbundle` packages and `.textpack` archives per textbundle.org spec v2: `info.json` (foreign metadata preserved), `text.*`, `assets/`. |
 | `MDTextKitDemo` | Demo window with Format / View / File menus. |
 
@@ -48,13 +48,24 @@ Hashtags are parsed but intentionally not styled (`RuleConfig.hashtags = false`)
 Not implemented: footnotes, wiki links, math and Mermaid rendering, syntax highlighting inside code blocks, bidi
 handling, YAML metadata, search, TOC and statistics panels, autocomplete.
 
+## Host integration
+
+A host that draws its own chrome uses `MDTextView` directly: create an `MDEditorController`, an
+`MDTextView(frame:editorController:)` and an `SFThemeManager(theme:)`, then call `applyTheme(_:)`,
+`installTableEditing(themeManager:)` and set `imageFileResolver` and `openURL`. `MDEditorController.formatting(in:)`
+reports what the selection is inside (heading level, inline styles, link, code block, quote, list kind) so a
+toolbar lights the toggle that would undo it. Text, attribute and selection changes post
+`MDTextViewTextDidChangeNotification`, `MDTextViewTextAttributesDidChangeNotification` and
+`MDTextViewTextDidChangeSelectionNotification` synchronously. There is no shared theme manager: the host owns one.
+
 ## Fonts and themes
 
 Themes use the system font by default (`"system"`, `"system-bold"`, `"system-mono"`, `"system-rounded"`,
 `"system-serif"`, `"system-semibold"`, or any PostScript name). Custom fonts can be registered for the process
 with `SFFontLoader.registerFonts(in:)` or by pointing `MDTEXTKIT_FONTS_DIR` at a folder of `.otf` / `.ttf` files;
 the theme's `editor.text font` / `editor.headers.font` / `editor.code.font` then refer to them by PostScript name.
-`SFThemeManager.shared.overrides` lets the host app override theme values (for example `"editor.text size"`).
+`SFThemeManager.overrides` lets the host app override theme values (for example `"editor.text size"`). An
+`"<font key> cjk"` override names a family that joins that font's cascade list.
 
 ## Run
 

@@ -5,7 +5,7 @@ import PolarMark
 /// stashing their font/kern under `MDOriginalAttributes` and applying a 0.01pt
 /// placeholder font with zero kerning; attachments that stand for markers are
 /// hidden through `SFTextAttachment.setHidden`. Showing restores the stash.
-public final class MDMarkdownHider: NSObject {
+@MainActor public final class MDMarkdownHider: NSObject {
 
     /// `+placeholderFont` = `[NSFont systemFontOfSize:0.01]`
     public static let placeholderFont: NSFont = NSFont.systemFont(ofSize: 0.01)

@@ -4,9 +4,9 @@ import AppKit
 @testable import MDTextKitUI
 import PolarMark
 
-final class MDTextKitTests: XCTestCase {
+@MainActor final class MDTextKitTests: XCTestCase {
     private func makeEditor() -> MDEditorViewController {
-        let vc = MDEditorViewController()
+        let vc = MDEditorViewController(themeManager: TestTheme.makeManager())
         _ = vc.view
         return vc
     }

@@ -6,7 +6,7 @@ public let MDTextViewTextAttributesDidChangeNotification = Notification.Name("MD
 public let MDTextViewTextDidChangeSelectionNotification = Notification.Name("MDTextViewTextDidChangeSelectionNotification")
 
 /// Lets the host validate/replace attachments (file previews, images…).
-public protocol MDTextAttachmentConfigurator: AnyObject {
+@MainActor public protocol MDTextAttachmentConfigurator: AnyObject {
     func isTextAttachmentValid(_ attachment: SFTextAttachment) -> Bool
     func replacementAttributedString(forTextAttachment attachment: SFTextAttachment) -> NSAttributedString?
 }
@@ -17,14 +17,15 @@ public extension MDTextAttachmentConfigurator {
 
 /// The glue between the text view, the text storage/AST, the renderer,
 /// the hider and the differ. Ported method by method from the decompilation.
-public final class MDEditorController: NSObject {
+@MainActor public final class MDEditorController: NSObject {
     public var attributedStringRenderer = MDAttributedStringRenderer()
     public var editorBehaviourController = MDEditorBehaviourController()
     public var attrStringDiffer = MDAttributedStringDiffer()
     public weak var textAttachmentConfigurator: MDTextAttachmentConfigurator?
     public var useDiff = true
     public var autoHideMarkdown = false
-    public var restyleTimer: Timer?
+    /// The restyle a typed space schedules; a new edit cancels it.
+    public var restyleTask: Task<Void, Never>?
 
     public override init() {
         super.init()
@@ -331,16 +332,16 @@ public final class MDEditorController: NSObject {
         if textView.hasMarkedText(), string != "" { return true }
         let ts = storage(textView)
         if let results = editorBehaviourController.results(forEditIn: range, replacementString: string, attributedString: ts, selectionRange: textView.selectedRange()) {
-            DispatchQueue.main.async { [weak self, weak textView] in
-                guard let self = self, let textView = textView else { return }
+            Task { @MainActor [weak self, weak textView] in
+                guard let self, let textView else { return }
                 self.applyTextOperationResults(results, in: textView)
-                if string == " " {
-                    self.restyleTimer?.invalidate()
-                    self.restyleTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: false) { [weak self, weak textView] _ in
-                        guard let self = self, let textView = textView else { return }
-                        self.performStyling(in: textView)
-                        self.restyleTimer = nil
-                    }
+                guard string == " " else { return }
+                self.restyleTask?.cancel()
+                self.restyleTask = Task { @MainActor [weak self, weak textView] in
+                    try? await Task.sleep(for: .seconds(2))
+                    guard !Task.isCancelled, let self, let textView else { return }
+                    self.performStyling(in: textView)
+                    self.restyleTask = nil
                 }
             }
             return false
@@ -380,15 +381,15 @@ public final class MDEditorController: NSObject {
     // MARK: Notifications
 
     public func notifyTextChanges(in textView: NSTextView) {
-        NotificationQueue.default.enqueue(Notification(name: MDTextViewTextDidChangeNotification, object: textView), postingStyle: .asap)
+        NotificationCenter.default.post(name: MDTextViewTextDidChangeNotification, object: textView)
     }
 
     public func notifyTextAttributesChanges(in textView: NSTextView) {
-        NotificationQueue.default.enqueue(Notification(name: MDTextViewTextAttributesDidChangeNotification, object: textView), postingStyle: .asap)
+        NotificationCenter.default.post(name: MDTextViewTextAttributesDidChangeNotification, object: textView)
     }
 
     public func notifyTextSelectionChanges(in textView: NSTextView) {
-        NotificationQueue.default.enqueue(Notification(name: MDTextViewTextDidChangeSelectionNotification, object: textView), postingStyle: .asap)
+        NotificationCenter.default.post(name: MDTextViewTextDidChangeSelectionNotification, object: textView)
     }
 
     // MARK: Typing attributes
@@ -800,6 +801,9 @@ public final class MDEditorController: NSObject {
             textView.setSelectedRange(NSRange(location: restore.location, length: restoreLength))
         }
     }
+
+    /// What the selection is inside, so a toolbar lights the toggle that would undo it.
+    public func formatting(in textView: NSTextView) -> MDFormatting { storage(textView).formatting(in: textView.selectedRange()) }
 
     public func toggleStrong(in tv: NSTextView) { toggleInlineStyle(0, in: tv) }
     public func toggleEmphasis(in tv: NSTextView) { toggleInlineStyle(1, in: tv) }

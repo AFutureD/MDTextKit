@@ -5,9 +5,9 @@ import AppKit
 
 /// Body line metrics with the default theme at 15pt: minimum line height = max(round(1.5 × 15), font line height),
 /// line spacing = round(minimum − (ascender + |descender| + leading)), tab 33, column 22, gutter 11, line width 720.
-final class MDLinePitchTests: XCTestCase {
+@MainActor final class MDLinePitchTests: XCTestCase {
     func testBodyLineMetrics() {
-        let vc = MDEditorViewController()
+        let vc = MDEditorViewController(themeManager: TestTheme.makeManager())
         _ = vc.view
         vc.load(markdown: "Welcome to a Swift Markdown editor PolarMark MDTextKit MDTextKitUI and more words to wrap the line for sure yes.\nMarkers like\n\n- A bullet\n- Another\n")
         let tv = vc.textView!

@@ -8,7 +8,7 @@ public typealias MDStylerReplacementBlock = (_ range: NSRange, _ replacement: NS
 
 /// `MDBaseTextStyler`. Holds the metrics shared by every styler and the
 /// `ListUtils` category helpers (spacers, indentation, writing direction).
-open class MDBaseTextStyler: NSObject {
+@MainActor open class MDBaseTextStyler: NSObject {
     public var cache = NSCache<AnyObject, AnyObject>()
     public var markerColor: NSColor = .black
     public var baseTextColor: NSColor = .black
@@ -19,6 +19,8 @@ open class MDBaseTextStyler: NSObject {
     public var columnSize: CGFloat = 0
     public var gutterSize: CGFloat = 0
     public var maxTextContainerWidth: CGFloat = 0
+    /// A rule's requested width; the cell clamps it to the line, so 0 (no column) asks for the whole line.
+    var fullLineWidth: CGFloat { maxTextContainerWidth > 0 ? maxTextContainerWidth : 10_000 }
 
     public override init() {
         super.init()

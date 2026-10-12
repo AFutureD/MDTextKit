@@ -4,7 +4,7 @@ import PolarMark
 /// `MDAttributedStringDiffer`. Finds the sub-range of a freshly styled string
 /// that differs from what the text storage already holds, so only that part is written
 /// back (and view-backed attachments survive restyling).
-public final class MDAttributedStringDiffer: NSObject {
+@MainActor public final class MDAttributedStringDiffer: NSObject {
     public var ignoreAttachments = false
     public var ignoreColorInCodeBlocks = false
 

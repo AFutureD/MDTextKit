@@ -42,16 +42,32 @@ Inline `code spans` and ==highlighted text== work too, so does \\*escaping\\*.
 Final paragraph after a thematic break.
 """
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+/// The demo's own themes; the kit ships none.
+enum DemoThemes {
+    static var urls: [URL] {
+        guard let dir = Bundle.module.url(forResource: "Themes", withExtension: nil) else { return [] }
+        let urls = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+        return urls.filter { $0.pathExtension == "theme" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+
+    @MainActor static func theme(named name: String) -> SFTheme? {
+        guard let url = urls.first(where: { $0.deletingPathExtension().lastPathComponent == name }) else { return nil }
+        return try? SFTheme(contentsOf: url)
+    }
+}
+
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
     var editor: MDEditorViewController!
+    let themeManager = SFThemeManager(theme: DemoThemes.theme(named: "Default") ?? SFTheme(name: "Empty", jsonObject: [:]))
+    private var autosaveObserver: MDNotificationToken?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // `--font-size 16` is the user font size setting, which overrides the theme's text size.
         if let i = CommandLine.arguments.firstIndex(of: "--font-size"), i + 1 < CommandLine.arguments.count, let size = Double(CommandLine.arguments[i + 1]) {
-            SFThemeManager.shared.overrides["editor.text size"] = size
+            themeManager.overrides["editor.text size"] = size
         }
-        editor = MDEditorViewController()
+        editor = MDEditorViewController(themeManager: themeManager)
         var size = NSSize(width: 900, height: 700)
         if let i = CommandLine.arguments.firstIndex(of: "--size"), i + 1 < CommandLine.arguments.count {
             let parts = CommandLine.arguments[i + 1].split(separator: "x").compactMap { Double($0) }
@@ -79,14 +95,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if let i = args0.firstIndex(of: "--autosave"), i + 1 < args0.count {
             let path = args0[i + 1]
-            NotificationCenter.default.addObserver(forName: MDTextViewTextDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-                try? self?.editor.markdown.write(toFile: path, atomically: true, encoding: .utf8)
-            }
+            autosaveObserver = MDNotificationToken(NotificationCenter.default.addObserver(forName: MDTextViewTextDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { try? self?.editor.markdown.write(toFile: path, atomically: true, encoding: .utf8) }
+            })
             try? editor.markdown.write(toFile: path, atomically: true, encoding: .utf8)
         }
         // `--debug-table-edit` edits the first table's cell (1,0) programmatically and prints the resulting markdown.
         if args0.contains("--debug-table-edit") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [self] in
+            Task { @MainActor [self] in
+                try? await Task.sleep(for: .seconds(1))
                 let ts = editor.textView.mdTextStorage
                 var done = false
                 ts.enumerateAttribute(.attachment, in: NSRange(location: 0, length: ts.length), options: []) { v, _, stop in
@@ -97,12 +114,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     stop.pointee = true
                 }
                 if !done { print("TABLE-EDIT no table attachment / controller") }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { print("TABLE-EDIT markdown:\n\(editor.markdown)"); NSApp.terminate(nil) }
+                try? await Task.sleep(for: .seconds(0.5))
+                print("TABLE-EDIT markdown:\n\(editor.markdown)"); NSApp.terminate(nil)
             }
         }
         // `--dump-layout` prints every line fragment (top, height, baseline, text) and exits (layout debugging).
         if args0.contains("--dump-layout") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
+            Task { @MainActor [self] in
+                try? await Task.sleep(for: .seconds(0.5))
                 let tv = editor.textView!
                 let lm = tv.layoutManager!, tc = tv.textContainer!
                 lm.ensureLayout(for: tc)
@@ -124,8 +143,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if i + 2 < args.count, let caret = Int(args[i + 2]) {
                 editor.textView.setSelectedRange(NSRange(location: caret, length: 0))
             }
-            if args.contains("--dark"), let t = SFThemeManager.bundledTheme(named: "Dark") { SFThemeManager.shared.loadTheme(t) }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
+            if args.contains("--dark"), let t = DemoThemes.theme(named: "Dark") { themeManager.loadTheme(t) }
+            Task { @MainActor [self] in
+                try? await Task.sleep(for: .seconds(0.5))
                 let tv = editor.textView!
                 tv.layoutManager?.ensureLayout(for: tv.textContainer!)
                 let rect = NSRect(x: 0, y: 0, width: tv.bounds.width, height: max(tv.bounds.height, 100))
@@ -144,8 +164,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
     @objc func switchTheme(_ sender: NSMenuItem) {
-        guard let name = sender.representedObject as? String, let theme = SFThemeManager.bundledTheme(named: name) else { return }
-        SFThemeManager.shared.loadTheme(theme)
+        guard let name = sender.representedObject as? String, let theme = DemoThemes.theme(named: name) else { return }
+        themeManager.loadTheme(theme)
     }
 
     @objc func dumpMarkdown(_ sender: Any?) {
@@ -287,7 +307,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let viewItem = NSMenuItem(title: "View", action: nil, keyEquivalent: ""); main.addItem(viewItem)
         let view = NSMenu(title: "View")
-        for url in SFThemeManager.bundledThemeURLs() {
+        for url in DemoThemes.urls {
             let name = url.deletingPathExtension().lastPathComponent
             let i = NSMenuItem(title: "Theme: \(name)", action: #selector(switchTheme(_:)), keyEquivalent: "")
             i.representedObject = name

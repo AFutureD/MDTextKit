@@ -4,9 +4,9 @@ import AppKit
 @testable import MDTextKitUI
 @testable import PolarMark
 
-final class MDPasteboardSelectionTests: XCTestCase {
+@MainActor final class MDPasteboardSelectionTests: XCTestCase {
     private func makeEditor(_ md: String) -> (MDEditorViewController, NSWindow) {
-        let vc = MDEditorViewController()
+        let vc = MDEditorViewController(themeManager: TestTheme.makeManager())
         vc.loadView(); vc.viewDidLoad()
         let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 708, height: 748), styleMask: [.titled], backing: .buffered, defer: false)
         win.contentViewController = vc

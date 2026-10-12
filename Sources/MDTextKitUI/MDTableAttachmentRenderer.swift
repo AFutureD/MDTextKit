@@ -6,7 +6,7 @@ import SFThemeKit
 /// `TableAttachmentViewController` + `TableAttachmentViewLayout` + `TableAttachmentView` — builds the cell
 /// model from the table markdown, fits the column widths, and renders the grid into the attachment image.
 /// (The grid itself is an image; cells are edited through an overlaid text view.)
-public final class MDTableAttachmentRenderer {
+@MainActor public final class MDTableAttachmentRenderer {
     public struct Cell { public var text: NSAttributedString; public var alignment: Int }
 
     public weak var editorController: MDEditorController?

@@ -4,7 +4,7 @@ import PolarMark
 /// Owns the 35 stylers and runs them in a fixed order
 /// over an annotated attributed string. Each styler may replace text (attachments), and the
 /// replacement block keeps the styled range (and the proposed selection) in sync.
-public final class MDAttributedStringRenderer: NSObject {
+@MainActor public final class MDAttributedStringRenderer: NSObject {
     public var ast = PMKAST(markdown: "")
     public var styleInlinesOnly = false {
         didSet { ast.parseInlinesOnly = styleInlinesOnly }

@@ -19,10 +19,13 @@ public extension NSAttributedString {
 public extension NSMutableAttributedString {
     static func attributedString(fromPolarData data: Data) -> NSMutableAttributedString? {
         let classes: [AnyClass] = [NSAttributedString.self, NSMutableAttributedString.self, SFTextAttachment.self, PMKListInfo.self, NSValue.self, FileWrapper.self, NSDate.self, NSImage.self, SFTextAttachmentCell.self]
-        guard let a = try? NSKeyedUnarchiver.unarchivedObject(ofClasses: classes, from: data) as? NSAttributedString else {
-            if let legacy = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? NSAttributedString { return NSMutableAttributedString(attributedString: legacy) }
-            return nil
+        if let a = try? NSKeyedUnarchiver.unarchivedObject(ofClasses: classes, from: data) as? NSAttributedString {
+            return NSMutableAttributedString(attributedString: a)
         }
+        // NSAttributedString decodes attribute values securely only for its own classes, not PMKListInfo.
+        guard let unarchiver = try? NSKeyedUnarchiver(forReadingFrom: data) else { return nil }
+        unarchiver.requiresSecureCoding = false
+        guard let a = unarchiver.decodeObject(of: classes, forKey: NSKeyedArchiveRootObjectKey) as? NSAttributedString else { return nil }
         return NSMutableAttributedString(attributedString: a)
     }
 }
@@ -92,7 +95,7 @@ public enum MDRTFImporter {
 }
 
 /// Which pasteboard content wins and how it becomes markdown.
-public final class MDPasteboardReader {
+@MainActor public final class MDPasteboardReader {
     public var pasteDestinationInsideCode = false
     public weak var markdownRenderer: MDAttributedStringRenderer?
     public var readURLsBlock: (([URL]) -> Void)?

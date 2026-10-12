@@ -2,7 +2,7 @@ import Foundation
 
 /// `Ice::RuleConfig` / `Ice::RuleMap`. Lets callers disable rules
 /// (`-[PMKAST disableRule:]`, `+[PMKAST setUsesSimplifiedRuleSet:]`).
-public struct RuleConfig: Equatable {
+public struct RuleConfig: Equatable, Sendable {
     public var strong = true
     public var emphasis = true
     public var strikethrough = true

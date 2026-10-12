@@ -1,10 +1,11 @@
 import AppKit
 import MDTextKit
 import PolarMark
+import SFThemeKit
 
 /// `MDTextView : NSTextView` (MDTextKitUI, Swift). Routes every edit, key command and selection
 /// change through `MDEditorController`.
-public class MDTextView: NSTextView, NSTextViewDelegate {
+@MainActor public class MDTextView: NSTextView, NSTextViewDelegate {
     public let editorController: MDEditorController
     private var trackingArea: NSTrackingArea?
     private var lastSelection = NSRange(location: 0, length: 0)
@@ -54,6 +55,60 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
     /// The markdown behind the attributed string (attachments expanded).
     public var markdown: String { mdTextStorage.stringByExpandingTextAttachments }
 
+    // MARK: Host hooks
+
+    /// Opens a clicked link. A host filters schemes here, or records the URL instead.
+    public var openURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
+
+    /// Resolves a relative image path. Nil shows the placeholder.
+    public var imageFileResolver: ((String) -> URL?)? {
+        get { editorController.attributedStringRenderer.imageStyler.fileResolver }
+        set { editorController.attributedStringRenderer.imageStyler.fileResolver = newValue }
+    }
+
+    public let tableRenderer = MDTableAttachmentRenderer()
+    /// The live cell editors; `attachmentViewController` is weak, so the view keeps them alive.
+    private var attachmentControllers: [ObjectIdentifier: (controller: NSViewController, attachment: SFTextAttachment)] = [:]
+
+    /// Pushes the theme into the stylers, the container, the layout manager and the view's own colours.
+    public func applyTheme(_ themeManager: SFThemeManager) {
+        let r = editorController.attributedStringRenderer
+        r.styleObject(with: themeManager)
+        tableRenderer.style(with: themeManager)
+        mdTextContainer.style(with: r, themeManager: themeManager)
+        mdLayoutManager.style(with: r, themeManager: themeManager)
+        typingAttributes = r.defaultTextAttributes
+        backgroundColor = themeManager.color(forKey: "base.background color", default: .white)
+        linkTextAttributes = [.cursor: NSCursor.pointingHand]
+        insertionPointColor = themeManager.color(forKey: "editor.cursor color", default: .textColor)
+        let selection = themeManager.color(forKey: "editor.selection color", default: .selectedTextBackgroundColor)
+        selectedTextAttributes = [
+            .backgroundColor: selection.withAlphaComponent(0.7),
+            .foregroundColor: themeManager.color(forKey: "editor.text color", default: .textColor)
+        ]
+    }
+
+    /// Renders each table as a grid and gives it a live cell editor.
+    public func installTableEditing(themeManager: SFThemeManager) {
+        tableRenderer.editorController = editorController
+        tableRenderer.maxAvailableWidth = { [weak self] in
+            guard let self else { return 500 }
+            let r = self.editorController.attributedStringRenderer
+            let column = r.textContainerMaxWidth > 0 ? r.textContainerMaxWidth : self.mdTextContainer.currentColumnWidth
+            return column - 2 * r.defaultParagraphIndent
+        }
+        editorController.attributedStringRenderer.tableStyler.attachmentRenderer = { [weak self] att in
+            guard let self else { return }
+            self.tableRenderer.render(att)
+            let vc = MDTableAttachmentViewController(
+                attachment: att, hostTextView: self, editorController: self.editorController,
+                gridRenderer: self.tableRenderer, themeManager: themeManager)
+            att.attachmentViewController = vc
+            _ = vc.view
+            self.attachmentControllers[ObjectIdentifier(att)] = (vc, att)
+        }
+    }
+
     // MARK: Editing hooks
 
     /// Styling runs from `didChangeText`.
@@ -67,9 +122,9 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
     public override func didChangeText() {
         super.didChangeText()
         if let um = undoManager, um.isUndoing || um.isRedoing {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self, self.window != nil else { return }
-                self.window?.makeFirstResponder(self)
+            Task { @MainActor [weak self] in
+                guard let self, let window else { return }
+                window.makeFirstResponder(self)
             }
         }
     }
@@ -82,13 +137,20 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         removeOrphanedAttachmentViews()
     }
 
-    /// Drops views of view-backed attachments that are no longer in the text storage.
+    /// Drops the views and cell editors of view-backed attachments that left the text storage.
     public func removeOrphanedAttachmentViews() {
-        var live = Set<ObjectIdentifier>()
+        var liveViews = Set<ObjectIdentifier>()
+        var liveAttachments = Set<ObjectIdentifier>()
         mdTextStorage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: mdTextStorage.length), options: []) { v, _, _ in
-            if let a = v as? SFTextAttachmentView, let c = a.attachmentViewController { live.insert(ObjectIdentifier(c.view)) }
+            guard let a = v as? SFTextAttachmentView else { return }
+            liveAttachments.insert(ObjectIdentifier(a))
+            if let c = a.attachmentViewController { liveViews.insert(ObjectIdentifier(c.view)) }
         }
-        for sub in subviews where sub is MDTableAttachmentView && !live.contains(ObjectIdentifier(sub)) { sub.removeFromSuperview() }
+        for sub in subviews where sub is MDTableAttachmentView && !liveViews.contains(ObjectIdentifier(sub)) { sub.removeFromSuperview() }
+        for key in attachmentControllers.keys where !liveAttachments.contains(key) {
+            attachmentControllers[key]?.controller.view.removeFromSuperview()
+            attachmentControllers.removeValue(forKey: key)
+        }
     }
 
     public override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
@@ -105,8 +167,8 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
     public func textViewDidChangeSelection(_ notification: Notification) {
         editorController.fixTypingAttributes(in: self)
         if window?.firstResponder === self {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
                 let sel = self.selectedRange()
                 if self.editorController.autoHideMarkdown, !self.hasMarkedText() {
                     self.editorController.autoHideMarkdown(in: self, forOldSelectionRange: self.lastSelection, newSelectionRange: sel)
@@ -208,9 +270,8 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
     }
 
     // MDTextView.mouseDown only calls super; attachment clicks arrive through the cell tracking →
-    // `textView:clickedOnCell:inRect:atIndex:` → `didInteract(with:at:)`.
-    @objc(textView:clickedOnCell:inRect:atIndex:)
-    public func textView(_ textView: NSTextView, clickedOnCell cell: NSTextAttachmentCellProtocol, in cellFrame: NSRect, at charIndex: Int) {
+    // `textView(_:clickedOn:in:at:)` → `didInteract(with:at:)`.
+    public func textView(_ textView: NSTextView, clickedOn cell: any NSTextAttachmentCellProtocol, in cellFrame: NSRect, at charIndex: Int) {
         guard let att = cell.attachment as? SFTextAttachment else { return }
         let flags = NSApp.currentEvent?.modifierFlags ?? []
         if flags.contains(.command) {
@@ -222,7 +283,7 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         if att is MDATXHeadingAttachment {
             showHeadingLevelMenu(at: charIndex, cellFrame: cellFrame)
         } else if att is MDLinkTextAttachment, let url = linkURL(at: charIndex) {
-            NSWorkspace.shared.open(url)
+            openURL(url)
         } else if att is MDHighlighterTextAttachment || att is MDCalloutTextAttachment {
             setSelectedRange(NSRange(location: charIndex, length: 1))   // the host pops the highlighter / callout menu here
         } else if !didInteract(with: att, at: charIndex) {
@@ -231,9 +292,8 @@ public class MDTextView: NSTextView, NSTextViewDelegate {
         }
     }
 
-    @objc(textView:doubleClickedOnCell:inRect:atIndex:)
-    public func textView(_ textView: NSTextView, doubleClickedOnCell cell: NSTextAttachmentCellProtocol, in cellFrame: NSRect, at charIndex: Int) {
-        self.textView(textView, clickedOnCell: cell, in: cellFrame, at: charIndex)
+    public func textView(_ textView: NSTextView, doubleClickedOn cell: any NSTextAttachmentCellProtocol, in cellFrame: NSRect, at charIndex: Int) {
+        self.textView(textView, clickedOn: cell, in: cellFrame, at: charIndex)
     }
 
     /// Tasks toggle, fold pills unfold.

@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.2
 import PackageDescription
 
 //   PolarMark   -> parser + AST + structural operations
@@ -8,7 +8,7 @@ import PackageDescription
 //   TextBundle  -> .textbundle / .textpack packages per textbundle.org
 let package = Package(
     name: "MDTextKit",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v26)],
     products: [
         .library(name: "PolarMark", targets: ["PolarMark"]),
         .library(name: "MDTextKit", targets: ["MDTextKit"]),
@@ -19,14 +19,14 @@ let package = Package(
     ],
     targets: [
         .target(name: "PolarMark"),
-        .target(name: "SFThemeKit", resources: [.copy("Themes")]),
+        .target(name: "SFThemeKit"),
         .target(name: "TextBundle"),
         .target(name: "MDTextKit", dependencies: ["PolarMark", "SFThemeKit"]),
         .target(name: "MDTextKitUI", dependencies: ["MDTextKit", "PolarMark", "SFThemeKit", "TextBundle"]),
-        .executableTarget(name: "MDTextKitDemo", dependencies: ["MDTextKitUI", "TextBundle"]),
+        .executableTarget(name: "MDTextKitDemo", dependencies: ["MDTextKitUI", "TextBundle"], resources: [.copy("Themes")]),
         .testTarget(name: "PolarMarkTests", dependencies: ["PolarMark"]),
         .testTarget(name: "MDTextKitTests", dependencies: ["MDTextKit", "MDTextKitUI"]),
         .testTarget(name: "TextBundleTests", dependencies: ["TextBundle"]),
     ],
-    swiftLanguageVersions: [.v5]
+    swiftLanguageModes: [.v6]
 )

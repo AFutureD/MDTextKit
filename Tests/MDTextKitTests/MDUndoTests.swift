@@ -6,9 +6,9 @@ import AppKit
 
 /// Programmatic changes (AST operations, task toggles, folding) are undoable through the
 /// editor's own undo manager; undo restores the previous attributed text and selection.
-final class MDUndoTests: XCTestCase {
+@MainActor final class MDUndoTests: XCTestCase {
     private func makeEditor(_ md: String) -> (MDEditorViewController, NSWindow) {
-        let vc = MDEditorViewController()
+        let vc = MDEditorViewController(themeManager: TestTheme.makeManager())
         vc.loadView(); vc.viewDidLoad()
         let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 708, height: 748), styleMask: [.titled], backing: .buffered, defer: false)
         win.contentViewController = vc

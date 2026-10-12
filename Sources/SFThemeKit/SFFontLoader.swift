@@ -4,6 +4,7 @@ import CoreText
 /// Registers editor fonts for this process only (nothing is installed into the user's font library), so
 /// themes can refer to them by PostScript name. Fonts come from the `MDTEXTKIT_FONTS_DIR` environment
 /// variable and from `registerFonts(in:)` calls made by the host application.
+@MainActor
 public enum SFFontLoader {
     public static let fontsDirectoryEnvironmentKey = "MDTEXTKIT_FONTS_DIR"
     private static var registeredDirectories = Set<URL>()

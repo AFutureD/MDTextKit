@@ -3,7 +3,7 @@ import MDTextKit
 import PolarMark
 
 /// A borderless chevron that remembers the character index it acts on.
-final class MDSideActionsButton: NSButton {
+@MainActor final class MDSideActionsButton: NSButton {
     var range: NSRange?
     override func resetCursorRects() { addCursorRect(bounds, cursor: .arrow) }
     override func mouseDown(with event: NSEvent) { if event.clickCount <= 1 { super.mouseDown(with: event) } }
@@ -11,7 +11,7 @@ final class MDSideActionsButton: NSButton {
 
 /// Transparent overlay over the editor that shows fold chevrons next to
 /// foldable headings and list items while the mouse hovers the left gutter.
-public final class MDSideActionsView: NSView {
+@MainActor public final class MDSideActionsView: NSView {
     public var foldingBlock: ((Int) -> Void)?
     // Both setters rebuild the images, drop every pooled button and relayout immediately.
     public var fontSize: CGFloat = 15 { didSet { setupButtonsImages(); invalidateAllDisclosureButtons(); updateActionsButtons(debounce: false) } }
@@ -25,9 +25,9 @@ public final class MDSideActionsView: NSView {
     private var unusedButtons: [MDSideActionsButton] = []
     private var buttonsAreVisible = false
     private var hoverRects: [NSRect] = []
-    private var debounceTimer: Timer?
+    private var debounceTask: Task<Void, Never>?
     private var chevronDown: NSImage?, chevronRight: NSImage?, chevronLeft: NSImage?
-    private var observers: [NSObjectProtocol] = []
+    private var observers: [MDNotificationToken] = []
 
     public init(hostingView: MDTextView, editorController: MDEditorController) {
         self.hostingView = hostingView
@@ -37,17 +37,16 @@ public final class MDSideActionsView: NSView {
         setupButtonsImages()
         if let clip = hostingView.enclosingScrollView?.contentView {
             clip.postsBoundsChangedNotifications = true
-            observers.append(NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: clip, queue: .main) { [weak self] _ in
-                self?.updateActionsButtons(debounce: !(self?.buttonsAreVisible ?? false)) })
-            observers.append(NotificationCenter.default.addObserver(forName: NSView.frameDidChangeNotification, object: clip, queue: .main) { [weak self] _ in self?.updateActionsButtons(debounce: true) })
+            observers.append(MDNotificationToken(NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: clip, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.updateActionsButtons(debounce: !(self?.buttonsAreVisible ?? false)) } }))
+            observers.append(MDNotificationToken(NotificationCenter.default.addObserver(forName: NSView.frameDidChangeNotification, object: clip, queue: .main) { [weak self] _ in MainActor.assumeIsolated { self?.updateActionsButtons(debounce: true) } }))
         }
         // TextViewDidChange defers to the next main-queue turn (styling runs first).
-        observers.append(NotificationCenter.default.addObserver(forName: MDTextViewTextDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            DispatchQueue.main.async { guard let self = self else { return }; self.updateActionsButtons(debounce: !self.buttonsAreVisible) } })
+        observers.append(MDNotificationToken(NotificationCenter.default.addObserver(forName: MDTextViewTextDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in guard let self else { return }; self.updateActionsButtons(debounce: !self.buttonsAreVisible) } }))
     }
 
     public required init?(coder: NSCoder) { fatalError() }
-    deinit { observers.forEach { NotificationCenter.default.removeObserver($0) } }
 
     public override var isFlipped: Bool { true }
     public override func hitTest(_ point: NSPoint) -> NSView? { nil }   // the overlay never swallows events
@@ -91,9 +90,13 @@ public final class MDSideActionsView: NSView {
     // MARK: Layout of the buttons
 
     public func updateActionsButtons(debounce: Bool) {
-        debounceTimer?.invalidate()
+        debounceTask?.cancel()
         if debounce {
-            debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in self?.updateActionsButtons(debounce: false) }
+            debounceTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(0.5))
+                guard !Task.isCancelled else { return }
+                self?.updateActionsButtons(debounce: false)
+            }
             return
         }
         guard let tv = hostingView, let ec = editorController, isEnabled else { return }
@@ -183,7 +186,7 @@ public final class MDSideActionsView: NSView {
     /// tracking areas and re-enter itself while scrolling).
     private func showButtons(animated: Bool) {
         guard !buttonsAreVisible, isEnabled else { return }
-        if let t = debounceTimer { debounceTimer = nil; t.fire() }
+        if debounceTask != nil { debounceTask?.cancel(); debounceTask = nil; updateActionsButtons(debounce: false) }
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = animated ? 0.3 : 0
             usedButtons.forEach { $0.animator().alphaValue = 1 }
