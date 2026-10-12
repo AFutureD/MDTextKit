@@ -192,7 +192,8 @@ import SFThemeKit
     }
 
     /// `TableAttachmentView.tableImage(for:)` / `drawTable` plus the layer border.
-    public func image(for layout: Layout) -> NSImage {
+    /// `blanking` leaves one cell's text out: the cell editor draws it, over the same fill.
+    public func image(for layout: Layout, blanking: (row: Int, column: Int)? = nil) -> NSImage {
         let contentSize = layout.contentSize, rects = layout.rects, display = layout.display
         let pad = layout.pad, borderWidth = layout.borderWidth, cornerRadius = layout.cornerRadius
         let image = NSImage(size: contentSize, flipped: true) { [self] _ in
@@ -214,6 +215,7 @@ import SFThemeKit
                     let rect = rects[ri][ci]
                     (ri.isMultiple(of: 2) ? alternateRowColor : rowColor).setFill()
                     NSBezierPath(rect: rect).fill()
+                    if let blanking, blanking.row == ri, blanking.column == ci { continue }
                     storage.setAttributedString(cell)
                     tc.size = CGSize(width: rect.width, height: max(1, rect.height - 2 * pad.height))
                     let glyphs = lm.glyphRange(for: tc)

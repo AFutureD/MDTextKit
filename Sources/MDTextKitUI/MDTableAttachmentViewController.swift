@@ -242,7 +242,7 @@ import SFThemeKit
     public func relayout(needsLayout: Bool) {
         guard let att = textAttachment, let l = gridRenderer.layout(rows: model.rows, columns: model.columns) else { return }
         layout = l
-        let image = gridRenderer.image(for: l)
+        let image = gridRenderer.image(for: l, blanking: cellTextView?.indexPath)
         tableView.image = image
         att.temporaryImage = image
         // Border + corner radius live on the view's layer, so they
@@ -322,17 +322,19 @@ import SFThemeKit
         tv.textContainerInset = NSSize(width: 0, height: l.pad.height)
         tv.mdTextContainer.lineFragmentPadding = l.pad.width
         tv.mdTextContainer.minInset = l.pad.width
-        tv.backgroundColor = ip.row.isMultiple(of: 2) ? gridRenderer.alternateRowColor : gridRenderer.rowColor
+        // The grid keeps the cell's fill and leaves its text out; the editor draws only the text.
+        tv.drawsBackground = false
         tv.insertionPointColor = themeManager.color(forKey: "editor.cursor color", default: .textColor)
         let cell = model.rows[ip.row][ip.column]
         var md = cell.text.stringByExpandingTextAttachments
         while let br = md.range(of: "<br ?/?>", options: .regularExpression) { md.replaceSubrange(br, with: "\n") }
         cellEditorController.loadString(md, into: tv)
-        tv.setAlignment(cellAlignment(cell.alignment), range: NSRange(location: 0, length: tv.string.utf16.count))
+        align(tv, cell.alignment)
         if ip.row == 0 { tv.mdTextStorage.addFontWeight(NSFont.Weight.semibold.rawValue, in: NSRange(location: 0, length: tv.mdTextStorage.length)) }
         tableView.addSubview(sv, positioned: .below, relativeTo: tableView.moreButton)
         cellScrollView = sv
         cellTextView = tv
+        relayout(needsLayout: false)
         _ = tv.window?.makeFirstResponder(tv)
         if let p = clickPoint {
             let local = tv.convert(p, from: tableView)
@@ -349,6 +351,7 @@ import SFThemeKit
         cellScrollView?.removeFromSuperview()
         cellScrollView = nil
         cellTextView = nil
+        relayout(needsLayout: false)
         writeBack(debounce: false)
         if returnFocus, let host = hostTextView { host.window?.makeFirstResponder(host) }
     }
@@ -372,9 +375,19 @@ import SFThemeKit
 
     @objc private func cellTextDidChange(_ note: Notification) {
         guard let tv = cellTextView else { return }
+        // Styling ran first and reset the paragraph style, so the column's alignment goes back on.
+        align(tv, model.rows[tv.indexPath.row][tv.indexPath.column].alignment)
         commitCell(tv)
         relayout(needsLayout: true)
         writeBack(debounce: true)
+    }
+
+    private func align(_ tv: MDTableCellTextView, _ alignment: Int) {
+        let textAlignment = cellAlignment(alignment)
+        tv.setAlignment(textAlignment, range: NSRange(location: 0, length: tv.string.utf16.count))
+        let style = (tv.typingAttributes[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+        style.alignment = textAlignment
+        tv.typingAttributes[.paragraphStyle] = style
     }
 
     /// Newlines become `<br>`.
