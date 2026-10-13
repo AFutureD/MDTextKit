@@ -29,6 +29,25 @@ import SFThemeKit
         XCTAssertNotNil(tv.typingAttributes[.font])
     }
 
+    func testCaretNeverStandsBeforeAHeadingMarker() {
+        let (tv, _) = makeTextView("intro\n# Title\n")
+        let ts = tv.mdTextStorage
+        guard let marker = (0..<ts.length).first(where: { ts.textAttachment(at: $0) is MDATXHeadingAttachment }) else {
+            return XCTFail("no heading marker")
+        }
+        tv.setSelectedRange(NSRange(location: marker, length: 0))
+        XCTAssertEqual(tv.selectedRange(), NSRange(location: marker + 1, length: 0), "a click before the marker lands after it")
+        tv.moveLeft(nil)
+        XCTAssertEqual(tv.selectedRange(), NSRange(location: marker - 1, length: 0), "stepping back skips to the line above")
+        tv.moveRight(nil)
+        XCTAssertEqual(tv.selectedRange(), NSRange(location: marker + 1, length: 0), "stepping forward skips the marker")
+
+        let (top, _) = makeTextView("# Title\n")
+        top.setSelectedRange(NSRange(location: 1, length: 0))
+        top.moveLeft(nil)
+        XCTAssertEqual(top.selectedRange(), NSRange(location: 1, length: 0), "the first heading keeps the caret after its marker")
+    }
+
     func testFormattingFollowsTheSelection() {
         let (tv, _) = makeTextView("# Title\n\n**bold** plain\n\n- [ ] task\n\n> quote\n\n```\ncode\n```\n")
         let ts = tv.mdTextStorage

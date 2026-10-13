@@ -142,10 +142,13 @@ import PolarMark
             cached.representedAttributedText = text
             return cached.copyAttachment()
         }
+        // The marker hangs in the side margin and is centred in it; with no margin it takes one tab.
+        let slot = defaultParagraphIndent > 0 ? defaultParagraphIndent : baseTabSize
         let w = baseFontSize * 1.1
-        let x = (columnSize - w) * 0.5
+        // The ink is the longest bar, 0.9 × w (`MDATXHeadingAttachment.drawAttachment`), so centre that.
+        let x = (slot - CGFloat(Int(w * 0.9))) * 0.5
         let a = MDATXHeadingAttachment(representedAttributedText: text)
-        a.attachmentSize = CGSize(width: baseTabSize, height: w)
+        a.attachmentSize = CGSize(width: slot, height: w)
         a.drawingRect = CGRect(x: x, y: 0, width: w, height: baseFontSize * 0.9)
         if rtl { a.drawingRect = CGRect(x: a.attachmentSize.width - x - w, y: 0, width: w, height: baseFontSize * 0.9) }
         if level > 3 {
@@ -490,7 +493,7 @@ import PolarMark
                 let nest = s.calloutNestLevel(at: fullRange.location)
                 s.enumerateAttribute(.paragraphStyle, in: ns.paragraphRange(for: fullRange), options: []) { pv, pr, _ in
                     guard let ps = (pv as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle else { return }
-                    ps.tailIndent = -(self.baseTabSize * CGFloat(nest + 1)) - font.pointSize * 0.5
+                    ps.tailIndent = -(self.defaultParagraphIndent + self.baseTabSize * CGFloat(nest)) - font.pointSize * 0.5
                     s.addAttribute(.paragraphStyle, value: ps, range: pr)
                 }
             }

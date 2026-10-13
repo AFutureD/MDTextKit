@@ -129,8 +129,21 @@ import PolarMark
             y = (y + (btn.frame.height * 0.05).rounded()).rounded()
             let rtl = (ts.attribute(.paragraphStyle, at: i, effectiveRange: nil) as? NSParagraphStyle)?.baseWritingDirection == .rightToLeft
             let x: CGFloat
-            if rtl { hasRTL = true; x = att.isHidden ? r.maxX - btn.frame.width - fontSize / 3 : r.maxX + origin.x }
-            else { x = (att.isHidden ? r.minX + fontSize / 3 : r.minX - btn.frame.width) + origin.x }
+            if rtl { hasRTL = true }
+            if att.isHidden, r.width >= btn.frame.width {
+                // The hidden marker keeps its slot in the side margin: the button takes its place, centred.
+                x = r.midX - btn.frame.width * 0.5 + origin.x
+            } else if att.isHidden {
+                x = rtl ? r.maxX - btn.frame.width - fontSize / 3 : r.minX + fontSize / 3 + origin.x
+            } else {
+                // The marker is showing, so the button goes beside it, and only if the view has room there.
+                x = rtl ? r.maxX + origin.x : r.minX - btn.frame.width + origin.x
+                guard x >= tv.bounds.minX, x + btn.frame.width <= tv.bounds.maxX else {
+                    usedButtons.removeLast()
+                    unusedButtons.append(btn)
+                    return
+                }
+            }
             btn.setFrameOrigin(NSPoint(x: floor(x), y: y))
             let hr = ts.headerRange(at: i)
             let end = NSMaxRange(hr)
@@ -154,7 +167,11 @@ import PolarMark
             let y = (r.maxY - btn.frame.height + (font?.descender ?? 0) - (ps?.lineSpacing ?? 0) - att.attachmentBaselineOffset
                 + origin.y + (btn.frame.height - att.attachmentSize.height) * 0.5).rounded()
             let rtl = (ts.attribute(.paragraphStyle, at: i, effectiveRange: nil) as? NSParagraphStyle)?.baseWritingDirection == .rightToLeft
-            let x = rtl ? floor(r.maxX + fontSize / 3 + origin.x) : floor(r.minX - lm.baseTabSize + fontSize / 3 + origin.x)
+            // Centred in the room before the marker: the side margin for a top-level item, one tab when nested.
+            let room = rtl ? min(lm.baseTabSize, tc.size.width - tc.lineFragmentPadding - r.maxX)
+                           : min(lm.baseTabSize, r.minX - tc.lineFragmentPadding)
+            let x = rtl ? floor(r.maxX + (room - btn.frame.width) * 0.5 + origin.x)
+                        : floor(r.minX - room + (room - btn.frame.width) * 0.5 + origin.x)
             if rtl { hasRTL = true }
             btn.setFrameOrigin(NSPoint(x: x, y: y))
             let end = NSMaxRange(ts.rangeOfListItemWithoutSublists(at: i))
@@ -164,7 +181,7 @@ import PolarMark
             hoverRects.append(convert(itemRect.offsetBy(dx: origin.x, dy: origin.y), from: tv))
         }
 
-        let strip = NSRect(x: bounds.minX, y: bounds.minY, width: tc.lineFragmentPadding + lm.baseTabSize, height: bounds.height)
+        let strip = NSRect(x: bounds.minX, y: bounds.minY, width: origin.x + tc.lineFragmentPadding + lm.defaultParagraphIndent, height: bounds.height)
         hoverRects.append(strip)
         if hasRTL { hoverRects.append(NSRect(x: bounds.maxX - strip.width, y: bounds.minY, width: strip.width, height: bounds.height)) }
         updateTrackingAreas()

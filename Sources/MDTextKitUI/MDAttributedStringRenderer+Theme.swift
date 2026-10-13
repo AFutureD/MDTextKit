@@ -18,6 +18,11 @@ public extension MDAttributedStringRenderer {
     func columnSize(forFontSize size: CGFloat) -> CGFloat { ceil(tabSize(forFontSize: size) * 0.6666666666666666) }
     /// `gutterSizeForFontSize(_:)` = ceil(tab × 1/3)
     func gutterSize(forFontSize size: CGFloat) -> CGFloat { ceil(tabSize(forFontSize: size) * 0.3333333333333333) }
+    /// The side margin, which is the body paragraph indent on both sides: "editor.side margin" or one tab.
+    /// It never gets narrower than the heading marker that hangs in it, 1.1 × size, plus 0.25 × size each side.
+    func sideMargin(for tm: SFThemeManager, fontSize size: CGFloat) -> CGFloat {
+        max(tm.number(forKey: "editor.side margin", default: tabSize(forFontSize: size)), ceil(size * 1.6))
+    }
     /// `pointSizeForFontSize(_:)` → `NSFont.basePointSizeForFontSize:`
     func pointSize(forFontSize size: CGFloat) -> CGFloat { NSFont.basePointSize(forFontSize: size) }
     /// `lineWidthForForThemeManager(_:)` = size × ("editor.line width multiplier" or 48)
@@ -59,7 +64,10 @@ public extension MDAttributedStringRenderer {
     /// `bodyParagraphIndent` setter used by table cell editors — zero indents on every styler and on the
     /// body paragraph style (tab stops restart at the new indent).
     func setBodyParagraphIndent(_ indent: CGFloat) {
-        for styler in textStylers { styler.defaultParagraphIndent = indent }
+        for styler in textStylers {
+            styler.defaultParagraphIndent = indent
+            styler.cache.removeAllObjects()   // the heading markers are sized by the indent
+        }
         guard let p = (bodyStyler.bodyTextAttributes[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle else { return }
         let tab = p.defaultTabInterval
         p.tabStops = (0..<19).map { NSTextTab(textAlignment: .natural, location: indent + tab * CGFloat($0), options: [:]) }
@@ -92,7 +100,7 @@ public extension MDAttributedStringRenderer {
             styler.baseFontSize = baseFontSize(for: tm)
             styler.baseTabSize = tabSize(forFontSize: styler.baseFontSize)
             styler.basePointSize = pointSize(forFontSize: styler.baseFontSize)
-            styler.defaultParagraphIndent = useDefaultIndent ? styler.baseTabSize : 0
+            styler.defaultParagraphIndent = useDefaultIndent ? sideMargin(for: tm, fontSize: styler.baseFontSize) : 0
             styler.columnSize = columnSize(forFontSize: styler.baseFontSize)
             styler.gutterSize = gutterSize(forFontSize: styler.baseFontSize)
             styler.maxTextContainerWidth = lineWidth(for: tm)

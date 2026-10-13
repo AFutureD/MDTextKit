@@ -386,7 +386,18 @@ public extension MDTextAttachmentConfigurator {
                 }
             }
         }
-        return ts.spacersAdjustedSelection(forProposedSelection: result, currentSelection: current)
+        result = ts.spacersAdjustedSelection(forProposedSelection: result, currentSelection: current)
+        return headingMarkerAdjustedSelection(result, currentSelection: current, in: ts)
+    }
+
+    /// The caret never stands before a heading marker: it goes after the marker, or, when it steps
+    /// back onto the marker from the heading text, to the end of the line above.
+    func headingMarkerAdjustedSelection(_ proposed: NSRange, currentSelection current: NSRange, in ts: NSAttributedString) -> NSRange {
+        let loc = proposed.location
+        guard proposed.length == 0, loc < ts.length,
+              (ts.attribute(.attachment, at: loc, effectiveRange: nil) as? SFTextAttachment)?.isATXHeader == true else { return proposed }
+        let steppedBack = current.length == 0 && current.location == loc + 1
+        return NSRange(location: steppedBack && loc > 0 ? loc - 1 : loc + 1, length: 0)
     }
 
     // MARK: Notifications

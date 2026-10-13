@@ -131,6 +131,7 @@ public typealias MDStylerReplacementBlock = (_ range: NSRange, _ replacement: NS
         let empty = s.isListOrBlockquoteParagraphEmpty(at: last)
         let p = (s.paragraphStyle(at: last) ?? NSParagraphStyle.default).mutableCopy() as! NSMutableParagraphStyle
         let info = s.listOrBlockquoteItemInfo(at: last)
+        // Assumes the side margin is no wider than one list indent (a tab).
         if p.firstLineHeadIndent <= indentWidth {
             let level = CGFloat(info?.listLevel ?? 0)
             let full = indentWidth + level * indentWidth
