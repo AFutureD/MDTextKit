@@ -74,8 +74,20 @@ final class PolarMarkTests: XCTestCase {
         // insert into "para one"
         let r = ast.replaceRange(NSRange(location: 10, length: 0), withMarkdown: "X")
         XCTAssertEqual(ast.markdown, "# A\n\npara Xone\n\npara two\n\n# B\n")
-        XCTAssertEqual(r, NSRange(location: 5, length: 10)) // only "para Xone\n"
+        // From the end of the unchanged block before the edit to the start of the one after it.
+        XCTAssertEqual(r, NSRange(location: 4, length: 12)) // "\npara Xone\n\n"
         XCTAssertEqual(ast.rootNode.children.count, 4)
+    }
+
+    func testIncrementalReparseStopsAtTheUnchangedBlock() {
+        let table = "| a | b |\n| --- | --- |\n| 1 | 2 |\n"
+        let ast = PMKAST(markdown: "## H\n\n\(table)")
+        // Delete the heading's newline: the blank line's newline now ends it and the table follows.
+        let r = ast.replaceRange(NSRange(location: 4, length: 1), withMarkdown: "")
+        XCTAssertEqual(ast.markdown, "## H\n\(table)")
+        XCTAssertEqual(ast.rootNode.children.map { $0.type }, [.heading, .table])
+        // Ends where the unchanged table starts: a cut into its first row drops the other rows.
+        XCTAssertEqual(r, NSRange(location: 0, length: 5))
     }
 
     func testIncrementalReparseExpandsWhenFenceOpens() {

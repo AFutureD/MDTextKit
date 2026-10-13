@@ -129,7 +129,6 @@ public final class PMKAST {
         }
         start = min(start, r.location)
         end = max(end, min(editEnd, utf16.count))
-        if end < utf16.count { end = max(end, lineEnd(at: end)) }
         currentReparsedRange = NSRange(location: start, length: end - start)
         return currentReparsedRange
     }
